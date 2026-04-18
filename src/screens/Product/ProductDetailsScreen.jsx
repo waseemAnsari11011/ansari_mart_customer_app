@@ -12,8 +12,9 @@ const { width } = Dimensions.get('window');
 const ProductDetailsScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const { cartItems } = useSelector(state => state.cart);
+    const { user } = useSelector(state => state.auth);
     const insets = useSafeAreaInsets();
-    const isWholesale = route?.params?.isWholesale ?? false; 
+    const isWholesale = route?.params?.isWholesale ?? (user?.type === 'Business'); 
     const product = route?.params?.product;
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [quantities, setQuantities] = useState({}); // { tierIndex: qty }
@@ -34,7 +35,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                 const response = await api.get(`/products?category=${encodeURIComponent(categoryParam)}&userType=${userType}`);
                 
                 // Filter out current product
-                const filtered = response.data.filter(p => p._id !== product._id);
+                const filtered = response.data.products.filter(p => p._id !== product._id);
                 setRelatedProducts(filtered.slice(0, 6)); // Show top 6
             } catch (error) {
                 console.error('Error fetching related products:', error);

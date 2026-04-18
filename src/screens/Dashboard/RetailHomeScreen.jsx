@@ -10,14 +10,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 import api, { resolveImageUrl } from '../../utils/api';
+import { getBasePrice } from '../../utils/pricing';
 
 const RetailHomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
-    const { categories, products, banners = [] } = useSelector(state => state.products);
+    const { categories, products, banners = [], pagination } = useSelector(state => state.products);
     const { addresses } = useSelector(state => state.address);
     const { cartItems } = useSelector(state => state.cart);
     const [activeBanner, setActiveBanner] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const scrollRef = useRef(null);
     const dispatch = useDispatch();
 
@@ -32,32 +34,40 @@ const RetailHomeScreen = ({ navigation }) => {
         }
     };
 
-    const fetchData = async () => {
-        try {
-            // Load categories and products first (fastest critical path)
-            const [catRes, prodRes] = await Promise.all([
-                fetchWithRetry(() => api.get('/categories')),
-                fetchWithRetry(() => api.get('/products?userType=retail')),
-            ]);
-            dispatch(setCategories(catRes.data));
-            dispatch(setProducts(prodRes.data));
-        } catch (error) {
-            console.error('Error loading primary home data:', error);
+    const fetchData = async (page = 1) => {
+        if (page === 1) {
+            try {
+                // Load categories and settings independently on initial load
+                const [catRes, settingsRes] = await Promise.all([
+                    fetchWithRetry(() => api.get('/categories')),
+                    fetchWithRetry(() => api.get('/settings')),
+                ]);
+                dispatch(setCategories(catRes.data));
+                const activeBanners = settingsRes.data?.banners?.filter(b => b.status === 'ACTIVE') || [];
+                dispatch(setBanners(activeBanners));
+            } catch (error) {
+                console.error('Error loading static home data:', error);
+            }
         }
 
-        // Load banners/settings independently — don't block main content
         try {
-            const settingsRes = await fetchWithRetry(() => api.get('/settings'));
-            const activeBanners = settingsRes.data?.banners?.filter(b => b.status === 'ACTIVE') || [];
-            dispatch(setBanners(activeBanners));
+            const prodRes = await fetchWithRetry(() => api.get(`/products?userType=retail&page=${page}&limit=20`));
+            dispatch(setProducts(prodRes.data));
         } catch (error) {
-            console.error('Error loading settings (non-critical):', error);
+            console.error('Error loading products:', error);
         }
+    };
+
+    const loadMore = async () => {
+        if (loadingMore || !pagination.hasMore) return;
+        setLoadingMore(true);
+        await fetchData(pagination.page + 1);
+        setLoadingMore(false);
     };
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchData();
+        await fetchData(1);
         setRefreshing(false);
     };
 
@@ -75,23 +85,10 @@ const RetailHomeScreen = ({ navigation }) => {
         if (banners.length > 0) data.push({ type: 'BANNERS', id: 'banners' });
         if (categories.length > 0) data.push({ type: 'CATEGORIES', id: 'categories' });
         
-        if (products.length === 0) {
+        if (products.length === 0 && !loadingMore) {
             data.push({ type: 'LOADING', id: 'loading' });
         } else {
-            // All Products Section (Moved to Top & Randomized)
-            data.push({ type: 'SECTION_HEADER', id: 'header-all', title: 'All Products' });
-            // Shuffle products and take first 4
-            const shuffledProducts = [...products].sort(() => Math.random() - 0.5);
-            const displayAll = shuffledProducts.slice(0, 4);
-            for (let i = 0; i < displayAll.length; i += 2) {
-                data.push({ 
-                    type: 'PRODUCT_ROW', 
-                    id: `row-all-${i}`, 
-                    items: displayAll.slice(i, i + 2) 
-                });
-            }
-
-            // Group products by category
+            // Group products by category (Showing only first 4 per category)
             categories.forEach(cat => {
                 const categoryProducts = products.filter(p => 
                     p.category === cat.name || 
@@ -107,7 +104,6 @@ const RetailHomeScreen = ({ navigation }) => {
                         categoryName: cat.name 
                     });
                     
-                    // Take first 4 products for the 2x2 grid
                     const displayProducts = categoryProducts.slice(0, 4);
                     for (let i = 0; i < displayProducts.length; i += 2) {
                         data.push({ 
@@ -120,11 +116,10 @@ const RetailHomeScreen = ({ navigation }) => {
             });
 
             // Handle products with no category
-            const catNames = categories.map(c => c.name);
             const catIds = categories.map(c => c._id);
             const otherProducts = products.filter(p => {
                 const pCat = p.category?._id || p.category;
-                return !catNames.includes(pCat) && !catIds.includes(pCat);
+                return !catIds.includes(pCat);
             });
             if (otherProducts.length > 0) {
                 data.push({ type: 'SECTION_HEADER', id: 'header-others', title: 'Others' });
@@ -136,9 +131,19 @@ const RetailHomeScreen = ({ navigation }) => {
                     });
                 }
             }
+
+            // All Products Section (Showing All with Infinite Scroll)
+            data.push({ type: 'SECTION_HEADER', id: 'header-all', title: 'All Products' });
+            for (let i = 0; i < products.length; i += 2) {
+                data.push({ 
+                    type: 'PRODUCT_ROW', 
+                    id: `row-all-${i}`, 
+                    items: products.slice(i, i + 2) 
+                });
+            }
         }
         return data;
-    }, [banners, categories, products]);
+    }, [banners, categories, products, loadingMore]);
 
     const renderItem = useCallback(({ item }) => {
         switch (item.type) {
@@ -241,17 +246,19 @@ const RetailHomeScreen = ({ navigation }) => {
                                     <TouchableOpacity style={styles.favBtn}>
                                         <MaterialIcons name="favorite-border" size={16} color="#94A3B8" />
                                     </TouchableOpacity>
-                                    {product.isHot && <View style={[styles.productBadge, { backgroundColor: '#F68B1E' }]}><Text style={styles.badgeText}>HOT</Text></View>}
-                                    {product.isCombo && <View style={[styles.productBadge, { backgroundColor: '#3B82F6' }]}><Text style={styles.badgeText}>COMBO</Text></View>}
+                                    {!!product.isHot && <View style={[styles.productBadge, { backgroundColor: '#F68B1E' }]}><Text style={styles.badgeText}>HOT</Text></View>}
+                                    {!!product.isCombo && <View style={[styles.productBadge, { backgroundColor: '#3B82F6' }]}><Text style={styles.badgeText}>COMBO</Text></View>}
                                 </View>
                                 <View style={styles.productInfo}>
                                     <Text style={styles.productBrand}>{product.brand || 'ANSARI MART'}</Text>
                                     <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                                    <Text style={styles.productWeight}>{product.weight || (product.unit ? `1 ${product.unit}` : '')}</Text>
+                                    <Text style={styles.productWeight}>
+                                        {product.weight || (product.retailPricing && product.retailPricing.length > 0 ? `1 ${product.retailPricing[0].unit}` : '')}
+                                    </Text>
                                     <View style={styles.productFooter}>
                                         <View>
-                                            <Text style={styles.productPrice}>₹{product.price}</Text>
-                                            {product.oldPrice && <Text style={styles.productOldPrice}>₹{product.oldPrice}</Text>}
+                                            <Text style={styles.productPrice}>₹{getBasePrice(product, false)}</Text>
+                                            {!!product.oldPrice && <Text style={styles.productOldPrice}>₹{product.oldPrice}</Text>}
                                         </View>
                                         <TouchableOpacity 
                                             style={styles.addBtn}
@@ -329,6 +336,13 @@ const RetailHomeScreen = ({ navigation }) => {
                 maxToRenderPerBatch={10}
                 windowSize={5}
                 removeClippedSubviews={true}
+                onEndReached={loadMore}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={() => loadingMore ? (
+                    <View style={{ paddingVertical: 20 }}>
+                        <ActivityIndicator size="small" color="#3e9400" />
+                    </View>
+                ) : null}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#3e9400']} />
                 }

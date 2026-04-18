@@ -8,10 +8,14 @@ import { useSelector } from 'react-redux';
 const BottomTab = ({ activeTab, isWholesale = false, isDarkMode = false }) => {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
+    const { user } = useSelector(state => state.auth);
     const { cartItems } = useSelector(state => state.cart);
 
+    // Prioritize user's actual account type; fallback to prop if not logged in
+    const effectiveIsWholesale = user?.type === 'Business' ? true : isWholesale;
+
     const navItems = [
-        { name: 'Home', icon: 'home', label: 'Home', route: isWholesale ? 'BusinessHome' : 'RetailHome' },
+        { name: 'Home', icon: 'home', label: 'Home', route: effectiveIsWholesale ? 'BusinessHome' : 'RetailHome' },
         { name: 'Categories', icon: 'grid-view', label: 'Categories', route: 'CategoryListing' },
         { name: 'Cart', icon: 'shopping-cart', label: 'Cart', route: 'Cart', isCart: true },
         { name: 'Profile', icon: 'person-outline', label: 'Profile', route: 'Profile' },
@@ -76,7 +80,7 @@ const BottomTab = ({ activeTab, isWholesale = false, isDarkMode = false }) => {
 
     const handlePress = (item) => {
         animateTab(item.name);
-        navigation.navigate(item.route, { isWholesale });
+        navigation.navigate(item.route, { isWholesale: effectiveIsWholesale });
     };
 
     return (

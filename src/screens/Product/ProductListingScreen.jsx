@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCartThunk } from '../../redux/slices/cartSlice';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, StatusBar, ActivityIndicator, FlatList } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { resolveImageUrl } from '../../utils/api';
@@ -13,40 +13,121 @@ const ProductListingScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const { cartItems } = useSelector(state => state.cart);
     const insets = useSafeAreaInsets();
+    const user = useSelector(state => state.auth.user);
+    const isWholesaleRoute = route?.params?.isWholesale ?? (user?.type === 'Business');
     const [isDarkMode, setIsDarkMode] = useState(false);
     const categoryName = route?.params?.categoryName || 'All Products';
+    
+    // Pagination State
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+
+    const fetchProducts = async (pageNumber = 1) => {
+        try {
+            let url = `/products?userType=${isWholesaleRoute ? 'business' : 'retail'}`;
+            if (categoryName && categoryName !== 'All Products') {
+                url += `&category=${encodeURIComponent(categoryName)}`;
+            }
+            url += `&page=${pageNumber}&limit=20`;
+
+            const response = await api.get(url);
+            const { products: fetchedProducts, pages } = response.data;
+
+            if (pageNumber === 1) {
+                setProducts(fetchedProducts);
+            } else {
+                setProducts(prev => [...prev, ...fetchedProducts]);
+            }
+            
+            setPage(pageNumber);
+            setHasMore(pageNumber < pages);
+        } catch (error) {
+            console.error("Error fetching products: ", error);
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchWithRetry = async (fn, retries = 3) => {
-            for (let i = 0; i < retries; i++) {
-                try { return await fn(); } catch (err) {
-                    if (i === retries - 1) throw err;
-                    await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-                }
-            }
-        };
-
-        const fetchProducts = async () => {
-            try {
-                let url = '/products';
-                const userType = route?.params?.isWholesale ? 'business' : 'retail';
-                url += `?userType=${userType}`;
-                if (categoryName && categoryName !== 'All Products') {
-                    url += `&category=${encodeURIComponent(categoryName)}`;
-                }
-                const response = await fetchWithRetry(() => api.get(url));
-                setProducts(response.data);
-            } catch (error) {
-                console.error("Error fetching products: ", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
+        setLoading(true);
+        fetchProducts(1);
     }, [categoryName]);
+
+    const handleLoadMore = () => {
+        if (!loadingMore && hasMore) {
+            setLoadingMore(true);
+            fetchProducts(page + 1);
+        }
+    };
+
+    const renderProduct = ({ item, index }) => (
+        <TouchableOpacity
+            key={item._id || index}
+            style={[styles.productCard, isDarkMode && styles.darkCard]}
+            onPress={() => navigation.navigate('ProductDetails', { 
+                product: item, 
+                isWholesale: isWholesaleRoute 
+            })}
+        >
+            <View style={[styles.productImgContainer, isDarkMode && styles.darkImgBg]}>
+                <Image source={{ uri: resolveImageUrl(item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/150') }} style={styles.productImg} />
+                <TouchableOpacity style={styles.favBtn}>
+                    <MaterialIcons name="favorite-border" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+                {!!item.isHot && (
+                    <View style={[styles.badge, { backgroundColor: '#F59E0B' }]}>
+                        <Text style={styles.badgeText}>HOT</Text>
+                    </View>
+                )}
+                {!!item.isCombo && (
+                    <View style={[styles.badge, { backgroundColor: '#3B82F6' }]}>
+                        <Text style={styles.badgeText}>COMBO</Text>
+                    </View>
+                )}
+            </View>
+
+            <View style={styles.productInfo}>
+                <Text style={styles.productBrand}>{item.brand || 'ANSARI MART'}</Text>
+                <Text style={[styles.productName, isDarkMode && styles.darkText]} numberOfLines={1}>{item.name}</Text>
+                <Text style={styles.productWeight}>{item.weight || (item.stock > 0 ? `${item.stock} in stock` : 'Out of stock')}</Text>
+
+                <View style={styles.productFooter}>
+                    <View>
+                        <Text style={[styles.productPrice, isDarkMode && styles.darkText]}>
+                            ₹{getBasePrice(item, isWholesaleRoute)}
+                            {(() => {
+                                const pricingArr = isWholesaleRoute ? item.businessPricing : item.retailPricing;
+                                const unitToDisplay = pricingArr && pricingArr.length > 0 ? pricingArr[0].unit : null;
+                                return unitToDisplay ? <Text style={styles.unitText}> / {unitToDisplay}</Text> : null;
+                            })()}
+                        </Text>
+                        {!!item.oldPrice && <Text style={styles.productOldPrice}>₹{item.oldPrice}</Text>}
+                    </View>
+                    <TouchableOpacity
+                        style={styles.addBtn}
+                        onPress={async () => {
+                            try {
+                                await dispatch(addToCartThunk({
+                                    product: item,
+                                    quantity: 1,
+                                    isWholesale: isWholesaleRoute
+                                })).unwrap();
+                            } catch (err) {
+                                console.error('Failed to add to cart:', err);
+                                alert('Failed to add item to cart. Please check your connection.');
+                            }
+                        }}
+                    >
+                        <MaterialIcons name="add" size={20} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
 
     return (
         <View style={[styles.container, isDarkMode && styles.darkContainer]}>
@@ -85,89 +166,45 @@ const ProductListingScreen = ({ navigation, route }) => {
                     </TouchableOpacity>
                 </View>
 
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subCatScroll}>
-                    {['All', 'Premium', 'Organic', 'Combo Offers', 'Value Packs'].map((tag, idx) => (
-                        <TouchableOpacity key={idx} style={[styles.subCatBtn, idx === 0 && styles.subCatBtnActive, isDarkMode && idx !== 0 && styles.darkSubCat]}>
-                            <Text style={[styles.subCatText, idx === 0 && styles.subCatTextActive, isDarkMode && idx !== 0 && styles.darkText]}>{tag}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
-
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {loading ? (
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
-                        <ActivityIndicator size="large" color="#2E7D32" />
-                    </View>
-                ) : products.length === 0 ? (
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
-                        <Text style={[isDarkMode && styles.darkText, { fontSize: 16, color: '#64748B' }]}>No products found in this category.</Text>
-                    </View>
-                ) : (
-                    <View style={styles.productGrid}>
-                        {products.map((item, index) => (
-                            <TouchableOpacity
-                                key={item._id || index}
-                                style={[styles.productCard, isDarkMode && styles.darkCard]}
-                                onPress={() => navigation.navigate('ProductDetails', { 
-                                    product: item, 
-                                    isWholesale: route?.params?.isWholesale 
-                                })}
-                            >
-                                <View style={[styles.productImgContainer, isDarkMode && styles.darkImgBg]}>
-                                    <Image source={{ uri: resolveImageUrl(item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/150') }} style={styles.productImg} />
-                                    <TouchableOpacity style={styles.favBtn}>
-                                        <MaterialIcons name="favorite-border" size={16} color="#94A3B8" />
-                                    </TouchableOpacity>
-                                    {item.isHot && (
-                                        <View style={[styles.badge, { backgroundColor: '#F59E0B' }]}>
-                                            <Text style={styles.badgeText}>HOT</Text>
-                                        </View>
-                                    )}
-                                    {item.isCombo && (
-                                        <View style={[styles.badge, { backgroundColor: '#3B82F6' }]}>
-                                            <Text style={styles.badgeText}>COMBO</Text>
-                                        </View>
-                                    )}
-                                </View>
-
-                                <View style={styles.productInfo}>
-                                    <Text style={styles.productBrand}>{item.brand || 'ANSARI MART'}</Text>
-                                    <Text style={[styles.productName, isDarkMode && styles.darkText]} numberOfLines={1}>{item.name}</Text>
-                                    <Text style={styles.productWeight}>{item.weight || (item.stock > 0 ? `${item.stock} in stock` : 'Out of stock')}</Text>
-
-                                    <View style={styles.productFooter}>
-                                        <View>
-                                            <Text style={[styles.productPrice, isDarkMode && styles.darkText]}>
-                                                ₹{getBasePrice(item, route?.params?.isWholesale)}
-                                                {item.unit ? <Text style={styles.unitText}> / {item.unit}</Text> : null}
-                                            </Text>
-                                            {item.oldPrice && <Text style={styles.productOldPrice}>₹{item.oldPrice}</Text>}
-                                        </View>
-                                        <TouchableOpacity
-                                            style={styles.addBtn}
-                                            onPress={async () => {
-                                                try {
-                                                    await dispatch(addToCartThunk({
-                                                        product: item,
-                                                        quantity: 1,
-                                                        isWholesale: route?.params?.isWholesale
-                                                    })).unwrap();
-                                                } catch (err) {
-                                                    console.error('Failed to add to cart:', err);
-                                                    alert('Failed to add item to cart. Please check your connection.');
-                                                }
-                                            }}
-                                        >
-                                            <MaterialIcons name="add" size={20} color="#fff" />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
+                <View style={{ height: 40 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subCatScroll}>
+                        {['All', 'Premium', 'Organic', 'Combo Offers', 'Value Packs'].map((tag, idx) => (
+                            <TouchableOpacity key={idx} style={[styles.subCatBtn, idx === 0 && styles.subCatBtnActive, isDarkMode && idx !== 0 && styles.darkSubCat]}>
+                                <Text style={[styles.subCatText, idx === 0 && styles.subCatTextActive, isDarkMode && idx !== 0 && styles.darkText]}>{tag}</Text>
                             </TouchableOpacity>
                         ))}
-                    </View>
-                )}
-            </ScrollView>
+                    </ScrollView>
+                </View>
+            </View>
+
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#2E7D32" />
+                </View>
+            ) : (
+                <FlatList
+                    data={products}
+                    renderItem={renderProduct}
+                    keyExtractor={(item) => item._id}
+                    numColumns={2}
+                    columnWrapperStyle={styles.productRow}
+                    contentContainerStyle={styles.scrollContent}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.5}
+                    ListEmptyComponent={
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
+                            <Text style={[isDarkMode && styles.darkText, { fontSize: 16, color: '#64748B' }]}>No products found.</Text>
+                        </View>
+                    }
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <View style={{ paddingVertical: 20 }}>
+                                <ActivityIndicator size="small" color="#2E7D32" />
+                            </View>
+                        ) : <View style={{ height: 20 }} />
+                    }
+                />
+            )}
         </View>
     );
 };
@@ -196,6 +233,7 @@ const styles = StyleSheet.create({
     subCatTextActive: { color: '#2E7D32' },
     darkSubCat: { backgroundColor: '#1E293B', borderColor: '#334155' },
     scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
+    productRow: { justifyContent: 'space-between', paddingHorizontal: 0 },
     productGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     productCard: { width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#F1F5F9', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
     darkCard: { backgroundColor: '#1E293B', borderColor: '#334155' },

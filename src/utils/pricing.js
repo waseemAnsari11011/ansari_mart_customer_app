@@ -3,9 +3,9 @@ export const calculateProductPrice = (product, quantity, isWholesale = false, ti
 
     const pricingTiers = isWholesale ? product.businessPricing : product.retailPricing;
 
-    // If no tiers exist, fallback to base price
+    // If no tiers exist, return 0 (price must come from tiers)
     if (!pricingTiers || !Array.isArray(pricingTiers) || pricingTiers.length === 0) {
-        return product.price || 0;
+        return 0;
     }
 
     // Return price based on tierIndex

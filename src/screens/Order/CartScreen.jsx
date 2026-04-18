@@ -15,7 +15,8 @@ const CartScreen = ({ navigation, route }) => {
     const cartItems = useSelector(state => state.cart.cartItems);
     const cartTotal = useSelector(selectCartTotal);
     const insets = useSafeAreaInsets();
-    const isWholesale = route?.params?.isWholesale ?? false;
+    const user = useSelector(state => state.auth.user);
+    const isWholesale = route?.params?.isWholesale ?? (user?.type === 'Business');
 
     const updateQty = async (productId, quantity, tierIndex) => {
         try {

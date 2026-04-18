@@ -14,7 +14,6 @@ const { width } = Dimensions.get('window');
 const CheckoutScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const insets = useSafeAreaInsets();
-    const isWholesale = route?.params?.isWholesale ?? true;
     const [paymentMethod, setPaymentMethod] = useState('ONLINE');
     const [upiMethod, setUpiMethod] = useState('PhonePe');
     const [upiId, setUpiId] = useState('');
@@ -22,8 +21,9 @@ const CheckoutScreen = ({ navigation, route }) => {
 
     // Redux State
     const { cartItems } = useSelector((state) => state.cart);
-    const { addresses, loading: addressLoading } = useSelector((state) => state.address);
     const { user } = useSelector((state) => state.auth);
+    const { addresses, loading: addressLoading } = useSelector((state) => state.address);
+    const isWholesale = route?.params?.isWholesale ?? (user?.type === 'Business');
 
     // Get selected address (default to first default address if none selected manually)
     const selectedAddress = addresses.find(addr => addr.isDefault) || addresses[0];
@@ -81,7 +81,9 @@ const CheckoutScreen = ({ navigation, route }) => {
                     city: selectedAddress.city,
                     pincode: selectedAddress.pincode,
                     state: selectedAddress.state,
-                    phone: selectedAddress.phone || user?.phone
+                    phone: selectedAddress.phone || user?.phone,
+                    latitude: selectedAddress.latitude,
+                    longitude: selectedAddress.longitude
                 },
                 paymentMethod: finalPaymentMethod,
                 totalPrice: orderTotal,

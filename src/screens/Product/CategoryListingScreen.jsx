@@ -21,7 +21,8 @@ const CategoryListingScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const reduxCategories = useSelector(state => state.products.categories);
     const insets = useSafeAreaInsets();
-    const isWholesale = route?.params?.isWholesale ?? false;
+    const user = useSelector(state => state.auth.user);
+    const isWholesale = route?.params?.isWholesale ?? (user?.type === 'Business');
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(reduxCategories.length === 0);
 
