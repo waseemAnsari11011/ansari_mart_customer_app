@@ -56,6 +56,29 @@ const CheckoutScreen = ({ navigation, route }) => {
 
         try {
             setLoading(true);
+
+            // 1. Delivery Area Validation
+            if (selectedAddress?.latitude && selectedAddress?.longitude) {
+                try {
+                    const checkRes = await api.post('/delivery-zones/check', {
+                        latitude: selectedAddress.latitude,
+                        longitude: selectedAddress.longitude
+                    });
+
+                    if (checkRes.data && checkRes.data.serviceable === false) {
+                        setLoading(false);
+                        Alert.alert(
+                            'Delivery Restricted',
+                            'Sorry, we do not deliver to this location yet. Please select a different address.'
+                        );
+                        return;
+                    }
+                } catch (checkErr) {
+                    console.log('[CHECKOUT] Location check failed:', checkErr);
+                    // We continue if check fails to avoid blocking orders due to network issues
+                }
+            }
+
             const finalPaymentMethod = paymentMethod === 'ONLINE'
                 ? (upiMethod === 'UPI_ID' ? `ONLINE (UPI: ${upiId})` : `ONLINE (${upiMethod})`)
                 : 'COD';
