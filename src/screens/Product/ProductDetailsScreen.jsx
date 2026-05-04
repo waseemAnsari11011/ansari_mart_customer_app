@@ -141,6 +141,11 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                 <View style={[styles.infoCard, isDarkMode && styles.darkCard]}>
                     <View style={styles.brandRow}>
                         <Text style={styles.brandText}>{product?.brand || 'ANSARI MART'}</Text>
+                        {!!product?.mrp && (
+                            <Text style={[styles.brandText, { color: '#2563eb', fontWeight: '900' }]}>
+                                MRP: ₹{product.mrp}
+                            </Text>
+                        )}
                     </View>
                     <Text style={[styles.productTitle, isDarkMode && styles.darkText]}>
                         {product?.name}
@@ -263,7 +268,14 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                                 </View>
                                 <View style={styles.specItem}>
                                     <Text style={styles.specLabel}>Stock Status</Text>
-                                    <Text style={[styles.specValue, { color: '#3E9400' }]}>{product?.stock > 0 ? `In Stock (${product.stock} units)` : 'Out of Stock'}</Text>
+                                    {(() => {
+                                        const totalStock = [...(product?.retailPricing || []), ...(product?.businessPricing || [])].reduce((acc, curr) => acc + (curr.stock || 0), 0);
+                                        return (
+                                            <Text style={[styles.specValue, { color: totalStock > 0 ? '#3E9400' : '#ef4444' }]}>
+                                                {totalStock > 0 ? `In Stock (${totalStock} units)` : 'Out of Stock'}
+                                            </Text>
+                                        );
+                                    })()}
                                 </View>
                                 <View style={styles.specItem}>
                                     <Text style={styles.specLabel}>Min. Order Qty</Text>
@@ -439,6 +451,9 @@ const styles = StyleSheet.create({
     },
     brandRow: {
         marginBottom: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     brandText: {
         fontSize: 12,

@@ -1,4 +1,4 @@
-package com.ansarimart
+package com.amart.ansari
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -6,7 +6,7 @@ import DeviceInfo from 'react-native-device-info';
 // Automatic BASE_URL detection for development
 // For production, use your server URL
 
-let baseURL = 'http://10.0.2.2:8000';
+let baseURL = 'http://13.201.92.4';
 
 if (__DEV__) {
     const isEmulator = DeviceInfo.isEmulatorSync();

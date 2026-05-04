@@ -1,4 +1,4 @@
-package com.ansarimart
+package com.amart.ansari
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

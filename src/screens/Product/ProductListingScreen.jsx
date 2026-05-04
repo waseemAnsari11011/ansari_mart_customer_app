@@ -78,22 +78,17 @@ const ProductListingScreen = ({ navigation, route }) => {
                 <TouchableOpacity style={styles.favBtn}>
                     <MaterialIcons name="favorite-border" size={16} color="#94A3B8" />
                 </TouchableOpacity>
-                {!!item.isHot && (
-                    <View style={[styles.badge, { backgroundColor: '#F59E0B' }]}>
-                        <Text style={styles.badgeText}>HOT</Text>
-                    </View>
-                )}
-                {!!item.isCombo && (
-                    <View style={[styles.badge, { backgroundColor: '#3B82F6' }]}>
-                        <Text style={styles.badgeText}>COMBO</Text>
-                    </View>
-                )}
             </View>
 
             <View style={styles.productInfo}>
                 <Text style={styles.productBrand}>{item.brand || 'ANSARI MART'}</Text>
                 <Text style={[styles.productName, isDarkMode && styles.darkText]} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.productWeight}>{item.weight || (item.stock > 0 ? `${item.stock} in stock` : 'Out of stock')}</Text>
+                <Text style={styles.productWeight}>
+                    {item.weight || (() => {
+                        const totalStock = [...(item.retailPricing || []), ...(item.businessPricing || [])].reduce((acc, curr) => acc + (curr.stock || 0), 0);
+                        return totalStock > 0 ? `${totalStock} in stock` : 'Out of stock';
+                    })()}
+                </Text>
 
                 <View style={styles.productFooter}>
                     <View>
@@ -105,7 +100,6 @@ const ProductListingScreen = ({ navigation, route }) => {
                                 return unitToDisplay ? <Text style={styles.unitText}> / {unitToDisplay}</Text> : null;
                             })()}
                         </Text>
-                        {!!item.oldPrice && <Text style={styles.productOldPrice}>₹{item.oldPrice}</Text>}
                     </View>
                     <TouchableOpacity
                         style={styles.addBtn}
