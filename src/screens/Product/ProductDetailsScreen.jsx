@@ -19,6 +19,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [quantities, setQuantities] = useState({}); // { tierIndex: qty }
     const [isFavorite, setIsFavorite] = useState(true);
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
 
     const [relatedProducts, setRelatedProducts] = useState([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
@@ -45,9 +46,17 @@ const ProductDetailsScreen = ({ navigation, route }) => {
         };
 
         fetchRelated();
-        // Reset quantities when product changes
-        setQuantities({});
-    }, [product?._id]);
+        
+        // Initialize quantities from cart to show existing selections
+        const initialQtys = {};
+        cartItems.forEach(item => {
+            const itemId = item.product?._id || item.product;
+            if (itemId === product?._id && item.isWholesale === isWholesale) {
+                initialQtys[item.tierIndex || 0] = item.quantity;
+            }
+        });
+        setQuantities(initialQtys);
+    }, [product?._id, cartItems, isWholesale]);
 
     const handleAddToCart = async () => {
         try {
@@ -128,13 +137,50 @@ const ProductDetailsScreen = ({ navigation, route }) => {
             <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 80 + insets.bottom }]} bounces={false}>
                 {/* Product Images Section */}
                 <View style={[styles.imageSection, isDarkMode && styles.darkSection]}>
-                    <Image
-                        source={{ uri: resolveImageUrl(product?.images?.[0]) || 'https://via.placeholder.com/400' }}
-                        style={styles.mainImage}
-                    />
-                    <View style={styles.pricingTag}>
-                        <Text style={styles.pricingTagText}>{isWholesale ? 'WHOLESALE EXCLUSIVE' : 'RETAIL PRICING'}</Text>
-                    </View>
+                    <ScrollView
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        onScroll={(e) => {
+                            const offset = e.nativeEvent.contentOffset.x;
+                            const index = Math.round(offset / width);
+                            setActiveImageIndex(index);
+                        }}
+                        scrollEventThrottle={16}
+                    >
+                        {(product?.images && product.images.length > 0) ? (
+                            product.images.map((img, index) => (
+                                <View key={index} style={{ width: width, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Image
+                                        source={{ uri: resolveImageUrl(img) }}
+                                        style={styles.mainImage}
+                                    />
+                                </View>
+                            ))
+                        ) : (
+                            <View style={{ width: width, padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+                                <Image
+                                    source={{ uri: 'https://via.placeholder.com/400' }}
+                                    style={styles.mainImage}
+                                />
+                            </View>
+                        )}
+                    </ScrollView>
+
+                    {product?.images?.length > 1 && (
+                        <View style={styles.paginationDots}>
+                            {product.images.map((_, index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.dot,
+                                        activeImageIndex === index && styles.activeDot,
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                    )}
+
                 </View>
 
                 {/* Info Section */}
@@ -258,54 +304,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                         {product?.description || "No description available for this product."}
                     </Text>
 
-                    {isWholesale && (
-                        <View style={styles.specsContainer}>
-                            <Text style={[styles.sectionHeading, isDarkMode && styles.darkText]}>Specifications</Text>
-                            <View style={styles.specsGrid}>
-                                <View style={styles.specItem}>
-                                    <Text style={styles.specLabel}>HSN Code</Text>
-                                    <Text style={[styles.specValue, isDarkMode && styles.darkText]}>{product?.hsnCode || 'N/A'}</Text>
-                                </View>
-                                <View style={styles.specItem}>
-                                    <Text style={styles.specLabel}>Stock Status</Text>
-                                    {(() => {
-                                        const totalStock = [...(product?.retailPricing || []), ...(product?.businessPricing || [])].reduce((acc, curr) => acc + (curr.stock || 0), 0);
-                                        return (
-                                            <Text style={[styles.specValue, { color: totalStock > 0 ? '#3E9400' : '#ef4444' }]}>
-                                                {totalStock > 0 ? `In Stock (${totalStock} units)` : 'Out of Stock'}
-                                            </Text>
-                                        );
-                                    })()}
-                                </View>
-                                <View style={styles.specItem}>
-                                    <Text style={styles.specLabel}>Min. Order Qty</Text>
-                                    <Text style={[styles.specValue, isDarkMode && styles.darkText]}>{product?.minOrderQty || 1} Units</Text>
-                                </View>
-                                <View style={styles.specItem}>
-                                    <Text style={styles.specLabel}>Lead Time</Text>
-                                    <Text style={[styles.specValue, isDarkMode && styles.darkText]}>{product?.leadTime || 'Standard Delivery'}</Text>
-                                </View>
-                            </View>
-                        </View>
-                    )}
 
-                    {/* Nutritional Facts */}
-                    <View style={[styles.nutritionContainer, isDarkMode && styles.darkNutritionBg]}>
-                        <Text style={[styles.nutritionTitle, isDarkMode && styles.darkText]}>NUTRITIONAL FACTS (PER 100G)</Text>
-                        <View style={styles.nutritionGrid}>
-                            {[
-                                { label: 'CALORIES', value: '33 kcal' },
-                                { label: 'SUGAR', value: '4.9g' },
-                                { label: 'FIBER', value: '2g' },
-                                { label: 'VIT C', value: '58mg' },
-                            ].map((item, index) => (
-                                <View key={index} style={[styles.nutritionItem, isDarkMode && styles.darkSection]}>
-                                    <Text style={styles.nutritionLabel}>{item.label}</Text>
-                                    <Text style={[styles.nutritionValue, isDarkMode && styles.darkText]}>{item.value}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
 
                     {/* Related Products */}
                     <View style={styles.relatedHeader}>
@@ -370,7 +369,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingBottom: 12,
+        paddingBottom: 4,
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
         zIndex: 50,
     },
@@ -404,9 +403,6 @@ const styles = StyleSheet.create({
         width: width,
         height: width,
         backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
         position: 'relative',
     },
     darkSection: {
@@ -415,7 +411,7 @@ const styles = StyleSheet.create({
     mainImage: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
+        resizeMode: 'contain',
         borderRadius: 24,
     },
     pricingTag: {
@@ -433,11 +429,28 @@ const styles = StyleSheet.create({
         color: '#3E9400',
         letterSpacing: 0.5,
     },
+    paginationDots: {
+        flexDirection: 'row',
+        position: 'absolute',
+        bottom: 16,
+        alignSelf: 'center',
+        gap: 6,
+    },
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    activeDot: {
+        backgroundColor: '#3E9400',
+        width: 20,
+    },
     infoCard: {
         backgroundColor: '#fff',
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
-        marginTop: -32,
+        marginTop: 0,
         paddingHorizontal: 20,
         paddingTop: 24,
         shadowColor: '#000',
@@ -687,69 +700,6 @@ const styles = StyleSheet.create({
         color: '#4b5563',
         lineHeight: 22,
         marginBottom: 32,
-    },
-    specsContainer: {
-        marginBottom: 32,
-    },
-    specsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-    },
-    specItem: {
-        width: '45%',
-    },
-    specLabel: {
-        fontSize: 12,
-        color: '#94a3b8',
-        marginBottom: 2,
-    },
-    specValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#0f172a',
-    },
-    nutritionContainer: {
-        backgroundColor: '#F8FAFC',
-        padding: 16,
-        borderRadius: 20,
-        marginBottom: 32,
-    },
-    darkNutritionBg: {
-        backgroundColor: 'rgba(30, 41, 59, 0.5)',
-    },
-    nutritionTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#0f172a',
-        letterSpacing: 1,
-        marginBottom: 12,
-    },
-    nutritionGrid: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    nutritionItem: {
-        flex: 1,
-        backgroundColor: '#fff',
-        paddingVertical: 10,
-        paddingHorizontal: 4,
-        borderRadius: 12,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        elevation: 1,
-    },
-    nutritionLabel: {
-        fontSize: 10,
-        color: '#94a3b8',
-        marginBottom: 4,
-    },
-    nutritionValue: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#0f172a',
     },
     relatedHeader: {
         flexDirection: 'row',

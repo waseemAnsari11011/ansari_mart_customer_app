@@ -33,7 +33,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     }, [dispatch]);
 
     // Calculate Totals
-    const subtotal = cartItems.reduce((total, item) => {
+    const subtotal = cartItems.filter(i => i.product).reduce((total, item) => {
         const unitPrice = calculateProductPrice(item.product, item.quantity, isWholesale, item.tierIndex || 0);
         return total + unitPrice * item.quantity;
     }, 0);
@@ -84,16 +84,16 @@ const CheckoutScreen = ({ navigation, route }) => {
                 : 'COD';
 
             const orderData = {
-                orderItems: cartItems.map(item => {
+                orderItems: cartItems.filter(item => item.product).map(item => {
                     const pricingArray = isWholesale ? item.product?.businessPricing : item.product?.retailPricing;
                     const tier = pricingArray?.[item.tierIndex || 0];
                     const unitLabel = tier?.unit ? ` (${tier.unit})` : '';
                     
                     return {
-                        product: item.product._id,
-                        name: item.product.name + unitLabel,
+                        product: item.product?._id,
+                        name: (item.product?.name || 'Product') + unitLabel,
                         qty: item.quantity,
-                        image: item.product.images?.[0] || '',
+                        image: item.product?.images?.[0] || '',
                         price: calculateProductPrice(item.product, item.quantity, isWholesale, item.tierIndex || 0),
                         tierIndex: item.tierIndex || 0
                     };
@@ -221,11 +221,11 @@ const CheckoutScreen = ({ navigation, route }) => {
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>ORDER ITEMS</Text>
                         <View style={styles.itemCountBadge}>
-                            <Text style={styles.itemCountText}>{cartItems.length} Items</Text>
+                            <Text style={styles.itemCountText}>{cartItems.filter(i => i.product).length} Items</Text>
                         </View>
                     </View>
                     <View style={styles.itemsList}>
-                        {cartItems.map((item, index) => {
+                        {cartItems.filter(item => item.product).map((item, index) => {
                             const pricingArray = isWholesale ? item.product?.businessPricing : item.product?.retailPricing;
                             const tier = pricingArray?.[item.tierIndex || 0];
                             const unitPrice = calculateProductPrice(item.product, item.quantity, isWholesale, item.tierIndex || 0);
@@ -235,13 +235,13 @@ const CheckoutScreen = ({ navigation, route }) => {
                                 <View key={`${item.product?._id}-${item.tierIndex || 0}`} style={styles.productItem}>
                                     <View style={styles.productImageContainer}>
                                         <Image
-                                            source={{ uri: resolveImageUrl(item.product.images?.[0]) }}
+                                            source={{ uri: resolveImageUrl(item.product?.images?.[0]) }}
                                             style={styles.productImage}
                                         />
                                     </View>
                                     <View style={styles.productDetails}>
                                         <View>
-                                            <Text style={styles.productName} numberOfLines={1}>{item.product.name}</Text>
+                                            <Text style={styles.productName} numberOfLines={1}>{item.product?.name}</Text>
                                             <Text style={styles.wholesaleRate}>
                                                 {isWholesale ? 'Wholesale' : 'Retail'}: ₹{unitPrice}/unit
                                                 {tier?.unit ? ` (${tier.unit})` : ''}
@@ -335,7 +335,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                     <Text style={styles.sectionTitle}>ORDER SUMMARY</Text>
                     <View style={styles.summaryCardBody}>
                         <View style={styles.summaryItemRow}>
-                            <Text style={styles.summaryItemLabel}>Items Total ({cartItems.length})</Text>
+                            <Text style={styles.summaryItemLabel}>Items Total ({cartItems.filter(i => i.product).length})</Text>
                             <Text style={styles.summaryItemValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
                         </View>
                         <View style={styles.summaryItemRow}>

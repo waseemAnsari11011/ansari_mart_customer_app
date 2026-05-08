@@ -26,7 +26,7 @@ const SplashScreen = ({ navigation }) => {
         setTimeout(async () => {
         // Fetch Fresh Data
         try {
-          const productsUrl = userType ? `/products?userType=${userType}` : '/products';
+          const productsUrl = userType ? `/products?userType=${userType}&limit=50` : '/products?limit=50';
           const [catRes, prodRes, settingsRes] = await Promise.all([
             api.get('/categories'),
             api.get(productsUrl),

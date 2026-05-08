@@ -119,7 +119,7 @@ const OrderSuccessScreen = ({ navigation, route }) => {
                     {/* Order Info Card */}
                     <Animated.View style={[styles.successCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                         <View style={styles.cardHeader}>
-                            <View>
+                            <View style={{ flex: 1 }}>
                                 <Text style={styles.cardLabel}>ORDER ID</Text>
                                 <Text style={styles.cardValue}>#{orderId ? orderId.substring(orderId.length - 8) : 'SUCCESS'}</Text>
                             </View>
@@ -267,6 +267,8 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         color: '#0F172A',
+        textTransform: 'uppercase',
+        paddingRight: 4,
     },
     deliverySection: {
         flexDirection: 'row',

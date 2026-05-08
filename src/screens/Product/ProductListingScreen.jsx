@@ -64,7 +64,11 @@ const ProductListingScreen = ({ navigation, route }) => {
         }
     };
 
-    const renderProduct = ({ item, index }) => (
+    const renderProduct = ({ item, index }) => {
+        const cartItem = cartItems.find(c => (c.product?._id || c.product) === item._id);
+        const quantityInCart = cartItem ? cartItem.quantity : 0;
+        
+        return (
         <TouchableOpacity
             key={item._id || index}
             style={[styles.productCard, isDarkMode && styles.darkCard]}
@@ -110,6 +114,7 @@ const ProductListingScreen = ({ navigation, route }) => {
                                     quantity: 1,
                                     isWholesale: isWholesaleRoute
                                 })).unwrap();
+                                navigation.navigate('Cart', { isWholesale: isWholesaleRoute });
                             } catch (err) {
                                 console.error('Failed to add to cart:', err);
                                 alert('Failed to add item to cart. Please check your connection.');
@@ -117,11 +122,17 @@ const ProductListingScreen = ({ navigation, route }) => {
                         }}
                     >
                         <MaterialIcons name="add" size={20} color="#fff" />
+                        {quantityInCart > 0 && (
+                            <View style={styles.qtyBadge}>
+                                <Text style={styles.qtyBadgeText}>{quantityInCart}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 </View>
             </View>
         </TouchableOpacity>
     );
+};
 
     return (
         <View style={[styles.container, isDarkMode && styles.darkContainer]}>
@@ -245,7 +256,9 @@ const styles = StyleSheet.create({
     productPrice: { fontSize: 16, fontWeight: '900', color: '#1E293B' },
     unitText: { fontSize: 10, fontWeight: '600', color: '#64748B' },
     productOldPrice: { fontSize: 12, color: '#94A3B8', textDecorationLine: 'line-through', marginTop: 2 },
-    addBtn: { backgroundColor: '#2E7D32', width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    addBtn: { backgroundColor: '#2E7D32', width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', position: 'relative' },
+    qtyBadge: { position: 'absolute', top: -10, right: -10, backgroundColor: '#EF4444', minWidth: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#fff' },
+    qtyBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
 });
 
 export default ProductListingScreen;

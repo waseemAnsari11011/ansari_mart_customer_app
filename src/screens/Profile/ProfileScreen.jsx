@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Platform, Alert, Linking } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import BottomTab from '../../components/BottomTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,8 +41,8 @@ const ProfileScreen = ({ navigation, route }) => {
             "Are you sure you want to logout?",
             [
                 { text: "Cancel", style: "cancel" },
-                { 
-                    text: "Logout", 
+                {
+                    text: "Logout",
                     style: "destructive",
                     onPress: async () => {
                         try {
@@ -110,9 +110,9 @@ const ProfileScreen = ({ navigation, route }) => {
                 {/* Theme toggle removed */}
             </View>
 
-            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 80 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 150 + insets.bottom }]} showsVerticalScrollIndicator={false}>
                 {/* Profile Card */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.profileCard, isDarkMode && styles.darkCard]}
                     onPress={() => navigation.navigate('EditProfile')}
                     activeOpacity={0.7}
@@ -196,9 +196,23 @@ const ProfileScreen = ({ navigation, route }) => {
                         <MaterialIcons name="logout" size={20} color="#F43F5E" />
                         <Text style={styles.logoutText}>Logout</Text>
                     </TouchableOpacity>
-                    <Text style={styles.versionText}>Version 2.4.1</Text>
                 </View>
+
+                {/* Developer Credit (Inside Scroll) */}
+                <TouchableOpacity 
+                    style={[styles.developerCard, isDarkMode && styles.darkCard]}
+                    onPress={() => Linking.openURL('https://ecarts.agency/')}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.developerContent}>
+                        <Text style={[styles.developerText, isDarkMode && styles.darkText]}>
+                            Developed by <Text style={styles.developerBrand}>ecarts</Text>
+                        </Text>
+                        <MaterialIcons name="open-in-new" size={18} color={isDarkMode ? "#94A3B8" : "#64748B"} style={{ marginLeft: 8 }} />
+                    </View>
+                </TouchableOpacity>
             </ScrollView>
+
 
             {/* Bottom Nav */}
             <BottomTab activeTab="Profile" isWholesale={isWholesale} isDarkMode={isDarkMode} />
@@ -482,6 +496,42 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
+    },
+    developerCard: {
+        marginTop: 32,
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.12,
+                shadowRadius: 12,
+            },
+            android: {
+                elevation: 6,
+            },
+        }),
+    },
+    developerText: {
+        fontSize: 19,
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    developerBrand: {
+        color: '#449d01',
+        fontWeight: '800',
+    },
+    developerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
 

@@ -58,58 +58,37 @@ const CartScreen = ({ navigation, route }) => {
             </View>
 
             <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 + insets.bottom }]}>
-                {/* Alerts - Only for Wholesale */}
-                {isWholesale ? (
-                    <>
-                        <View style={[styles.alertBox, styles.successAlert]}>
-                            <View style={styles.alertIconBg}>
-                                <MaterialIcons name="trending-down" size={18} color="#fff" />
-                            </View>
-                            <View>
-                                <Text style={styles.successTitle}>Bulk Savings Applied!</Text>
-                                <Text style={styles.successDesc}>You are saving ₹500 on this order!</Text>
-                            </View>
-                        </View>
 
-                        <View style={[styles.alertBox, styles.warningAlert]}>
-                            <MaterialIcons name="info" size={24} color="#F57C00" />
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.warningTitle}>Minimum Order Quantity Not Met</Text>
-                                <Text style={styles.warningDesc}>Add 2 more packs of "Premium Basmati Rice" to qualify.</Text>
-                            </View>
-                        </View>
-                    </>
-                ) : null}
 
                 {/* Cart Items */}
                 <View style={styles.itemsContainer}>
-                    {cartItems.length === 0 ? (
+                    {cartItems.filter(item => item.product).length === 0 ? (
                         <View style={styles.emptyCart}>
                             <MaterialIcons name="shopping-cart" size={64} color="#cbd5e1" />
                             <Text style={styles.emptyText}>Your cart is empty</Text>
                         </View>
                     ) : (
-                        cartItems.map((item, index) => {
+                        cartItems.filter(item => item.product).map((item, index) => {
                             const pricingArray = item.isWholesale ? item.product?.businessPricing : item.product?.retailPricing;
                             const tier = pricingArray?.[item.tierIndex || 0];
                             const unitPrice = calculateProductPrice(item.product, item.quantity, item.isWholesale, item.tierIndex || 0);
                             
                             return (
-                                <View key={`${item.product._id}-${item.tierIndex || 0}`} style={styles.cartItem}>
+                                <View key={`${item.product?._id}-${item.tierIndex || 0}`} style={styles.cartItem}>
                                     <View style={styles.imagePlaceholder}>
-                                        <Image source={{ uri: resolveImageUrl(item.product.images?.[0]) }} style={styles.itemThumb} />
+                                        <Image source={{ uri: resolveImageUrl(item.product?.images?.[0]) }} style={styles.itemThumb} />
                                     </View>
                                     <View style={styles.itemContent}>
                                         <View style={styles.itemHeader}>
                                             <View style={{ flex: 1 }}>
-                                                <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
+                                                <Text style={styles.itemName} numberOfLines={2}>{item.product?.name}</Text>
                                                 {tier && (
                                                     <Text style={[styles.unitPrice, { color: '#3E920C', fontWeight: '600' }]}>
                                                         Unit: {tier.unit || 'Standard'}
                                                     </Text>
                                                 )}
                                             </View>
-                                            <TouchableOpacity onPress={() => handleRemove(item.product._id, item.tierIndex || 0)}>
+                                            <TouchableOpacity onPress={() => handleRemove(item.product?._id, item.tierIndex || 0)}>
                                                 <MaterialIcons name="delete-outline" size={20} color="#94A3B8" />
                                             </TouchableOpacity>
                                         </View>
@@ -120,11 +99,11 @@ const CartScreen = ({ navigation, route }) => {
                                         <View style={styles.itemFooter}>
                                             <Text style={styles.totalPrice}>₹{(unitPrice * item.quantity).toLocaleString()}</Text>
                                             <View style={styles.qtyControl}>
-                                                <TouchableOpacity onPress={() => updateQty(item.product._id, item.quantity - 1, item.tierIndex || 0)}>
+                                                <TouchableOpacity onPress={() => updateQty(item.product?._id, item.quantity - 1, item.tierIndex || 0)}>
                                                     <MaterialIcons name="remove" size={16} color="#3E920C" />
                                                 </TouchableOpacity>
                                                 <Text style={styles.qtyText}>{item.quantity}</Text>
-                                                <TouchableOpacity onPress={() => updateQty(item.product._id, item.quantity + 1, item.tierIndex || 0)}>
+                                                <TouchableOpacity onPress={() => updateQty(item.product?._id, item.quantity + 1, item.tierIndex || 0)}>
                                                     <MaterialIcons name="add" size={16} color="#3E920C" />
                                                 </TouchableOpacity>
                                             </View>
@@ -146,7 +125,7 @@ const CartScreen = ({ navigation, route }) => {
             {/* Footer Summary */}
             <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 60, 100) }]}>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Subtotal ({cartItems.reduce((a, b) => a + b.quantity, 0)} items)</Text>
+                    <Text style={styles.summaryLabel}>Subtotal ({cartItems.filter(i => i.product).reduce((a, b) => a + b.quantity, 0)} items)</Text>
                     <Text style={styles.summaryValue}>₹{cartTotal.toLocaleString()}</Text>
                 </View>
 
@@ -213,49 +192,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         padding: 16,
     },
-    alertBox: {
-        flexDirection: 'row',
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 12,
-        alignItems: 'center',
-        gap: 12
-    },
-    successAlert: {
-        backgroundColor: 'rgba(62, 146, 12, 0.05)',
-        borderColor: 'rgba(62, 146, 12, 0.2)',
-        borderWidth: 1
-    },
-    alertIconBg: {
-        backgroundColor: '#3E920C',
-        padding: 6,
-        borderRadius: 20
-    },
-    successTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#3E920C'
-    },
-    successDesc: {
-        fontSize: 12,
-        color: '#3E920C'
-    },
-    warningAlert: {
-        backgroundColor: '#FFFBEB',
-        borderWidth: 1,
-        borderColor: '#FEF3C7',
-        alignItems: 'flex-start'
-    },
-    warningTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#B45309'
-    },
-    warningDesc: {
-        fontSize: 12,
-        color: '#D97706',
-        marginTop: 2
-    },
+
 
     itemsContainer: {
         gap: 16,

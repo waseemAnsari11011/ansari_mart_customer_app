@@ -69,7 +69,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 {/* Order ID & Status */}
                 <View style={[styles.orderStatusCard, { borderTopWidth: 1, borderTopColor: '#F1F5F9' }]}>
                     <View style={styles.statusHeader}>
-                        <View>
+                        <View style={{ flex: 1 }}>
                             <Text style={styles.orderIdLabel}>ORDER ID</Text>
                             <Text style={styles.orderIdText}>#{order._id?.toString().length > 12 ? order._id.substring(order._id.length - 8) : order._id}</Text>
                         </View>
@@ -230,6 +230,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: '900',
         color: '#0F172A',
+        textTransform: 'uppercase',
+        paddingRight: 8,
     },
     statusBadge: {
         backgroundColor: 'rgba(62, 148, 0, 0.1)',

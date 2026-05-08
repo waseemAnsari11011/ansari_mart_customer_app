@@ -51,7 +51,7 @@ const RetailHomeScreen = ({ navigation }) => {
         }
 
         try {
-            const prodRes = await fetchWithRetry(() => api.get(`/products?userType=retail&page=${page}&limit=20`));
+            const prodRes = await fetchWithRetry(() => api.get(`/products?userType=retail&page=${page}&limit=50`));
             dispatch(setProducts(prodRes.data));
         } catch (error) {
             console.error('Error loading products:', error);
@@ -74,6 +74,7 @@ const RetailHomeScreen = ({ navigation }) => {
     const handleAddToCart = async (item) => {
         try {
             await dispatch(addToCartThunk({ product: item, quantity: 1, isWholesale: false })).unwrap();
+            navigation.navigate('Cart', { isWholesale: false });
         } catch (err) {
             console.error('Failed to add to cart:', err);
             alert('Failed to add item to cart. Please check your connection.');
@@ -90,12 +91,14 @@ const RetailHomeScreen = ({ navigation }) => {
         } else {
             // Group products by category (Showing only first 4 per category)
             categories.forEach(cat => {
-                const categoryProducts = products.filter(p => 
-                    p.category === cat.name || 
-                    p.category === cat._id || 
-                    p.category?._id === cat._id || 
-                    p.category?.name === cat.name
-                );
+                const categoryProducts = products.filter(p => {
+                    const pCatId = (p.category?._id || p.category || '').toString();
+                    const catId = (cat._id || '').toString();
+                    const pCatName = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).toLowerCase().trim();
+                    const catName = (cat.name || '').toLowerCase().trim();
+                    
+                    return (pCatId === catId && catId !== '') || (pCatName === catName && catName !== '');
+                });
                 if (categoryProducts.length > 0) {
                     data.push({ 
                         type: 'SECTION_HEADER', 
@@ -116,10 +119,10 @@ const RetailHomeScreen = ({ navigation }) => {
             });
 
             // Handle products with no category
-            const catIds = categories.map(c => c._id);
+            const catIds = categories.map(c => c._id.toString());
             const otherProducts = products.filter(p => {
-                const pCat = p.category?._id || p.category;
-                return !catIds.includes(pCat);
+                const pCatId = (p.category?._id || p.category || '').toString();
+                return !catIds.includes(pCatId);
             });
             if (otherProducts.length > 0) {
                 data.push({ type: 'SECTION_HEADER', id: 'header-others', title: 'Others' });
@@ -235,12 +238,16 @@ const RetailHomeScreen = ({ navigation }) => {
             case 'PRODUCT_ROW':
                 return (
                     <View style={styles.productRow}>
-                        {item.items.map((product) => (
-                            <TouchableOpacity 
-                                key={product._id} 
-                                style={styles.productCard} 
-                                onPress={() => navigation.navigate('ProductDetails', { product, isWholesale: false })}
-                            >
+                        {item.items.map((product) => {
+                            const cartItem = cartItems.find(c => (c.product?._id || c.product) === product._id);
+                            const quantityInCart = cartItem ? cartItem.quantity : 0;
+                            
+                            return (
+                                <TouchableOpacity 
+                                    key={product._id} 
+                                    style={styles.productCard} 
+                                    onPress={() => navigation.navigate('ProductDetails', { product, isWholesale: false })}
+                                >
                                 <View style={styles.productImgContainer}>
                                     <Image source={{ uri: resolveImageUrl(product.images?.[0]) || 'https://via.placeholder.com/150' }} style={styles.productImg} />
                                     <TouchableOpacity style={styles.favBtn}>
@@ -265,17 +272,27 @@ const RetailHomeScreen = ({ navigation }) => {
                                             onPress={() => handleAddToCart(product)}
                                         >
                                             <MaterialIcons name="add" size={20} color="#fff" />
+                                            {quantityInCart > 0 && (
+                                                <View style={styles.qtyBadge}>
+                                                    <Text style={styles.qtyBadgeText}>{quantityInCart}</Text>
+                                                </View>
+                                            )}
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             </TouchableOpacity>
-                        ))}
-                    </View>
+                        );
+                    })}
+                </View>
                 );
             default:
                 return null;
         }
-    }, [banners, categories, activeBanner, width, navigation, handleAddToCart]);
+    }, [banners, categories, activeBanner, width, navigation, handleAddToCart, cartItems]);
+    
+    useEffect(() => {
+        fetchData(1);
+    }, []);
 
     useEffect(() => {
         if (!banners || banners.length === 0) return;
@@ -400,7 +417,9 @@ const styles = StyleSheet.create({
     productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 2 },
     productPrice: { fontSize: 13, fontWeight: '900', color: '#1A1A1A' },
     productOldPrice: { fontSize: 9, color: '#94A3B8', textDecorationLine: 'line-through' },
-    addBtn: { backgroundColor: '#3e9400', width: 26, height: 26, borderRadius: 6, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#3e9400', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
+    addBtn: { backgroundColor: '#3e9400', width: 26, height: 26, borderRadius: 6, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#3e9400', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, position: 'relative' },
+    qtyBadge: { position: 'absolute', top: -8, right: -8, backgroundColor: '#EF4444', minWidth: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#fff' },
+    qtyBadgeText: { color: '#fff', fontSize: 8, fontWeight: 'bold' },
     centerBox: { width: '100%', height: 200, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 12, fontSize: 14, color: '#64748B', fontWeight: '600' },
 });
