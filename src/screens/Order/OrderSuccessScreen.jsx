@@ -125,7 +125,7 @@ const OrderSuccessScreen = ({ navigation, route }) => {
                             </View>
                             <View style={{ alignItems: 'flex-end' }}>
                                 <Text style={styles.cardLabel}>ESTIMATED DELIVERY</Text>
-                                <Text style={[styles.cardValue, { color: '#3E9400' }]}>Within 2-3 Days</Text>
+                                <Text style={[styles.cardValue, { color: '#3E9400' }]}>Same Day</Text>
                             </View>
                         </View>
 

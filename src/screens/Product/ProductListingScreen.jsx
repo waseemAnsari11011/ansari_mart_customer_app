@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCartThunk } from '../../redux/slices/cartSlice';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, TextInput, StatusBar, ActivityIndicator, FlatList } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import ProductQuickView from '../../components/Product/ProductQuickView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { resolveImageUrl } from '../../utils/api';
 import { getBasePrice } from '../../utils/pricing';
@@ -24,6 +25,8 @@ const ProductListingScreen = ({ navigation, route }) => {
     const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [quickViewVisible, setQuickViewVisible] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
     const fetchProducts = async (pageNumber = 1) => {
         try {
@@ -65,8 +68,9 @@ const ProductListingScreen = ({ navigation, route }) => {
     };
 
     const renderProduct = ({ item, index }) => {
-        const cartItem = cartItems.find(c => (c.product?._id || c.product) === item._id);
-        const quantityInCart = cartItem ? cartItem.quantity : 0;
+        const quantityInCart = cartItems
+            .filter(c => (c.product?._id || c.product) === item._id)
+            .reduce((sum, c) => sum + (c.quantity || 0), 0);
         
         return (
         <TouchableOpacity
@@ -87,12 +91,9 @@ const ProductListingScreen = ({ navigation, route }) => {
             <View style={styles.productInfo}>
                 <Text style={styles.productBrand}>{item.brand || 'ANSARI MART'}</Text>
                 <Text style={[styles.productName, isDarkMode && styles.darkText]} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.productWeight}>
-                    {item.weight || (() => {
-                        const totalStock = [...(item.retailPricing || []), ...(item.businessPricing || [])].reduce((acc, curr) => acc + (curr.stock || 0), 0);
-                        return totalStock > 0 ? `${totalStock} in stock` : 'Out of stock';
-                    })()}
-                </Text>
+                <View style={styles.mrpTag}>
+                    <Text style={styles.mrpText}>MRP: ₹{item.mrp || '0'}</Text>
+                </View>
 
                 <View style={styles.productFooter}>
                     <View>
@@ -107,18 +108,9 @@ const ProductListingScreen = ({ navigation, route }) => {
                     </View>
                     <TouchableOpacity
                         style={styles.addBtn}
-                        onPress={async () => {
-                            try {
-                                await dispatch(addToCartThunk({
-                                    product: item,
-                                    quantity: 1,
-                                    isWholesale: isWholesaleRoute
-                                })).unwrap();
-                                navigation.navigate('Cart', { isWholesale: isWholesaleRoute });
-                            } catch (err) {
-                                console.error('Failed to add to cart:', err);
-                                alert('Failed to add item to cart. Please check your connection.');
-                            }
+                        onPress={() => {
+                            setSelectedProduct(item);
+                            setQuickViewVisible(true);
                         }}
                     >
                         <MaterialIcons name="add" size={20} color="#fff" />
@@ -144,19 +136,7 @@ const ProductListingScreen = ({ navigation, route }) => {
                         <MaterialIcons name="arrow-back-ios" size={20} color={isDarkMode ? "#fff" : "#111"} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, isDarkMode && styles.darkText]} numberOfLines={1}>{categoryName}</Text>
-                    <View style={styles.headerActions}>
-                        <TouchableOpacity style={[styles.darkModeButton, isDarkMode && styles.darkButtonBg]} onPress={() => setIsDarkMode(!isDarkMode)}>
-                            <MaterialIcons name="dark-mode" size={20} color={isDarkMode ? "#fff" : "#333"} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.darkModeButton, isDarkMode && styles.darkButtonBg]} onPress={() => navigation.navigate('Cart')}>
-                            <MaterialIcons name="shopping-cart" size={20} color={isDarkMode ? "#fff" : "#333"} />
-                            {cartItems.length > 0 && (
-                                <View style={styles.cartBadge}>
-                                    <Text style={styles.cartBadgeText}>{cartItems.length}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    <View style={{ width: 40 }} />
                 </View>
 
                 <View style={styles.searchBar}>
@@ -210,6 +190,13 @@ const ProductListingScreen = ({ navigation, route }) => {
                     }
                 />
             )}
+
+            <ProductQuickView 
+                isVisible={quickViewVisible} 
+                onClose={() => setQuickViewVisible(false)} 
+                product={selectedProduct} 
+                isWholesale={isWholesaleRoute} 
+            />
         </View>
     );
 };
@@ -222,11 +209,6 @@ const styles = StyleSheet.create({
     headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
     backButton: { padding: 8, marginLeft: -8 },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#0F172A', flex: 1, marginLeft: 12 },
-    headerActions: { flexDirection: 'row', gap: 12 },
-    darkModeButton: { padding: 8, backgroundColor: '#F1F5F9', borderRadius: 8, position: 'relative' },
-    darkButtonBg: { backgroundColor: '#334155' },
-    cartBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#EF4444', minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#fff' },
-    cartBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
     darkText: { color: '#F8FAFC' },
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 12, height: 44, marginBottom: 16 },
     searchInput: { flex: 1, paddingHorizontal: 8, fontSize: 14, color: '#0F172A' },
@@ -251,9 +233,10 @@ const styles = StyleSheet.create({
     productInfo: { flex: 1 },
     productBrand: { fontSize: 10, fontWeight: 'bold', color: '#94A3B8', marginBottom: 4, letterSpacing: 0.5 },
     productName: { fontSize: 14, fontWeight: 'bold', color: '#1E293B', marginBottom: 4 },
-    productWeight: { fontSize: 12, color: '#64748B', marginBottom: 12 },
+    mrpTag: { backgroundColor: '#F1F5F9', alignSelf: 'flex-start', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, marginBottom: 8 },
+    mrpText: { fontSize: 11, color: '#000000', fontWeight: '900' },
     productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' },
-    productPrice: { fontSize: 16, fontWeight: '900', color: '#1E293B' },
+    productPrice: { fontSize: 16, fontWeight: '900', color: '#000000' },
     unitText: { fontSize: 10, fontWeight: '600', color: '#64748B' },
     productOldPrice: { fontSize: 12, color: '#94A3B8', textDecorationLine: 'line-through', marginTop: 2 },
     addBtn: { backgroundColor: '#2E7D32', width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', position: 'relative' },

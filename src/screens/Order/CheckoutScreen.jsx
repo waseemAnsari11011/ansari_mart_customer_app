@@ -14,7 +14,7 @@ const { width } = Dimensions.get('window');
 const CheckoutScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const insets = useSafeAreaInsets();
-    const [paymentMethod, setPaymentMethod] = useState('ONLINE');
+    const [paymentMethod, setPaymentMethod] = useState('COD');
     const [upiMethod, setUpiMethod] = useState('PhonePe');
     const [upiId, setUpiId] = useState('');
     const [loading, setLoading] = useState(false);
@@ -268,7 +268,8 @@ const CheckoutScreen = ({ navigation, route }) => {
                     <View style={styles.paymentList}>
 
                         {/* Online Payment (UPI/Card) */}
-                        <TouchableOpacity
+                        {/* Online Payment (UPI/Card) - Hidden as per request */}
+                        {/* <TouchableOpacity
                             activeOpacity={0.8}
                             style={[
                                 styles.paymentCard,
@@ -297,7 +298,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                                     {paymentMethod === 'ONLINE' && <View style={styles.radioInner} />}
                                 </View>
                             </View>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
                         {/* Cash on Delivery */}
                         <TouchableOpacity

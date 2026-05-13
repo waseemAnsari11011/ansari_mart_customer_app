@@ -5,12 +5,14 @@ import { setCategories, setProducts, setBanners } from '../../redux/slices/produ
 import { addToCartThunk } from '../../redux/slices/cartSlice';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import BottomTab from '../../components/BottomTab';
+import ProductQuickView from '../../components/Product/ProductQuickView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 import api, { resolveImageUrl } from '../../utils/api';
 import { getBasePrice } from '../../utils/pricing';
+import { filterProducts } from '../../hooks/useProductSearch';
 
 const RetailHomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -20,8 +22,11 @@ const RetailHomeScreen = ({ navigation }) => {
     const [activeBanner, setActiveBanner] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
     const dispatch = useDispatch();
+    const [quickViewVisible, setQuickViewVisible] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
     const fetchWithRetry = async (fn, retries = 3) => {
         for (let i = 0; i < retries; i++) {
@@ -71,18 +76,28 @@ const RetailHomeScreen = ({ navigation }) => {
         setRefreshing(false);
     };
 
-    const handleAddToCart = async (item) => {
-        try {
-            await dispatch(addToCartThunk({ product: item, quantity: 1, isWholesale: false })).unwrap();
-            navigation.navigate('Cart', { isWholesale: false });
-        } catch (err) {
-            console.error('Failed to add to cart:', err);
-            alert('Failed to add item to cart. Please check your connection.');
-        }
+    const handleAddToCart = (item) => {
+        setSelectedProduct(item);
+        setQuickViewVisible(true);
     };
 
     const combinedData = useMemo(() => {
         const data = [];
+
+        // If user is searching, show filtered results only
+        const searchResults = filterProducts(products, searchQuery);
+        if (searchResults !== null) {
+            if (searchResults.length === 0) {
+                data.push({ type: 'LOADING', id: 'empty-search' });
+            } else {
+                data.push({ type: 'SECTION_HEADER', id: 'header-search', title: `Results for "${searchQuery}"` });
+                for (let i = 0; i < searchResults.length; i += 2) {
+                    data.push({ type: 'PRODUCT_ROW', id: `row-search-${i}`, items: searchResults.slice(i, i + 2) });
+                }
+            }
+            return data;
+        }
+
         if (banners.length > 0) data.push({ type: 'BANNERS', id: 'banners' });
         if (categories.length > 0) data.push({ type: 'CATEGORIES', id: 'categories' });
         
@@ -146,7 +161,7 @@ const RetailHomeScreen = ({ navigation }) => {
             }
         }
         return data;
-    }, [banners, categories, products, loadingMore]);
+    }, [banners, categories, products, loadingMore, searchQuery]);
 
     const renderItem = useCallback(({ item }) => {
         switch (item.type) {
@@ -239,8 +254,9 @@ const RetailHomeScreen = ({ navigation }) => {
                 return (
                     <View style={styles.productRow}>
                         {item.items.map((product) => {
-                            const cartItem = cartItems.find(c => (c.product?._id || c.product) === product._id);
-                            const quantityInCart = cartItem ? cartItem.quantity : 0;
+                            const quantityInCart = cartItems
+                                .filter(c => (c.product?._id || c.product) === product._id)
+                                .reduce((sum, c) => sum + (c.quantity || 0), 0);
                             
                             return (
                                 <TouchableOpacity 
@@ -259,13 +275,9 @@ const RetailHomeScreen = ({ navigation }) => {
                                 <View style={styles.productInfo}>
                                     <Text style={styles.productBrand}>{product.brand || 'ANSARI MART'}</Text>
                                     <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                                    <Text style={styles.productWeight}>
-                                        {product.weight || (product.retailPricing && product.retailPricing.length > 0 ? `1 ${product.retailPricing[0].unit}` : '')}
-                                    </Text>
                                     <View style={styles.productFooter}>
                                         <View>
-                                            <Text style={styles.productPrice}>₹{getBasePrice(product, false)}</Text>
-                                            {!!product.oldPrice && <Text style={styles.productOldPrice}>₹{product.oldPrice}</Text>}
+                                            <Text style={styles.productPrice}>MRP: ₹{product.mrp || '0'}</Text>
                                         </View>
                                         <TouchableOpacity 
                                             style={styles.addBtn}
@@ -339,7 +351,15 @@ const RetailHomeScreen = ({ navigation }) => {
                         style={styles.searchInput}
                         placeholder="Search groceries, staples and more..."
                         placeholderTextColor="#94A3B8"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        returnKeyType="search"
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <MaterialIcons name="close" size={20} color="#94A3B8" />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
@@ -366,6 +386,13 @@ const RetailHomeScreen = ({ navigation }) => {
             />
 
             <BottomTab activeTab="Home" isWholesale={false} />
+
+            <ProductQuickView 
+                isVisible={quickViewVisible} 
+                onClose={() => setQuickViewVisible(false)} 
+                product={selectedProduct} 
+                isWholesale={false} 
+            />
         </View>
     );
 };
@@ -412,10 +439,11 @@ const styles = StyleSheet.create({
     badgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
     productInfo: { flex: 1 },
     productBrand: { fontSize: 8, fontWeight: '800', color: '#94A3B8', marginBottom: 1, letterSpacing: 0.5 },
-    productName: { fontSize: 11, fontWeight: '800', color: '#1A1A1A', marginBottom: 1, height: 32 },
-    productWeight: { fontSize: 9, color: '#64748B', marginBottom: 4 },
+    productName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 2, height: 38, lineHeight: 18 },
+    mrpTag: { backgroundColor: '#F1F5F9', alignSelf: 'flex-start', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, marginBottom: 4 },
+    mrpText: { fontSize: 11, color: '#000000', fontWeight: '900' },
     productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 2 },
-    productPrice: { fontSize: 13, fontWeight: '900', color: '#1A1A1A' },
+    productPrice: { fontSize: 13, fontWeight: '900', color: '#000000' },
     productOldPrice: { fontSize: 9, color: '#94A3B8', textDecorationLine: 'line-through' },
     addBtn: { backgroundColor: '#3e9400', width: 26, height: 26, borderRadius: 6, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#3e9400', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, position: 'relative' },
     qtyBadge: { position: 'absolute', top: -8, right: -8, backgroundColor: '#EF4444', minWidth: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#fff' },

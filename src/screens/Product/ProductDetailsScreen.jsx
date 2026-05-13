@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCartThunk, addBulkToCartThunk } from '../../redux/slices/cartSlice';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, StatusBar, Animated } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { calculateProductPrice, getBasePrice } from '../../utils/pricing';
@@ -23,6 +23,17 @@ const ProductDetailsScreen = ({ navigation, route }) => {
 
     const [relatedProducts, setRelatedProducts] = useState([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
+    const [toastVisible, setToastVisible] = useState(false);
+    const toastAnim = useState(new Animated.Value(0))[0];
+
+    const showToast = () => {
+        setToastVisible(true);
+        Animated.sequence([
+            Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+            Animated.delay(1500),
+            Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        ]).start(() => setToastVisible(false));
+    };
 
     useEffect(() => {
         const fetchRelated = async () => {
@@ -58,7 +69,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
         setQuantities(initialQtys);
     }, [product?._id, cartItems, isWholesale]);
 
-    const handleAddToCart = async () => {
+    const handleAddToCart = () => {
         try {
             const itemsToAdd = Object.entries(quantities)
                 .filter(([_, qty]) => qty > 0)
@@ -74,22 +85,21 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                 return;
             }
 
-            await dispatch(addBulkToCartThunk({ items: itemsToAdd })).unwrap();
-            alert('Items added to cart');
+            dispatch(addBulkToCartThunk({ items: itemsToAdd }));
+            showToast();
         } catch (error) {
             console.error('Failed to add to cart:', error);
-            alert('Failed to add items. Please try again.');
         }
     };
 
-    const handleBuyNow = async () => {
-        const itemsToAdd = Object.entries(quantities).filter(([_, qty]) => qty > 0);
-        if (itemsToAdd.length === 0) {
+    const handleBuyNow = () => {
+        const itemsToAddCount = Object.values(quantities).filter(qty => qty > 0).length;
+        if (itemsToAddCount === 0) {
             alert('Please select at least one unit quantity');
             return;
         }
-        await handleAddToCart();
         navigation.navigate('Cart', { isWholesale });
+        handleAddToCart();
     };
 
     const handleShare = async () => {
@@ -352,6 +362,13 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
             </View>
 
+            {/* Toast Notification */}
+            {toastVisible && (
+                <Animated.View style={[styles.toast, { opacity: toastAnim, transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
+                    <MaterialIcons name="check-circle" size={20} color="#fff" />
+                    <Text style={styles.toastText}>Added to Cart!</Text>
+                </Animated.View>
+            )}
 
         </View>
     );
@@ -817,6 +834,29 @@ const styles = StyleSheet.create({
     },
     darkSubtitle: {
         color: '#94a3b8',
+    },
+    toast: {
+        position: 'absolute',
+        bottom: 110,
+        alignSelf: 'center',
+        backgroundColor: '#3E9400',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 8,
+        zIndex: 999,
+    },
+    toastText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
 });
 

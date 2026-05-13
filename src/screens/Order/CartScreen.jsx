@@ -2,7 +2,7 @@ import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateCartQtyThunk, removeFromCartThunk, selectCartTotal } from '../../redux/slices/cartSlice';
 import { calculateProductPrice } from '../../utils/pricing';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import BottomTab from '../../components/BottomTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ const { width } = Dimensions.get('window');
 const CartScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const cartItems = useSelector(state => state.cart.cartItems);
+    const loading = useSelector(state => state.cart.loading);
     const cartTotal = useSelector(selectCartTotal);
     const insets = useSafeAreaInsets();
     const user = useSelector(state => state.auth.user);
@@ -145,6 +146,16 @@ const CartScreen = ({ navigation, route }) => {
                     <Text style={styles.checkoutText}>{isWholesale ? 'Proceed to Wholesale Checkout' : 'Proceed to Checkout'}</Text>
                 </TouchableOpacity>
             </View>
+            
+            {loading && (
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loaderContainer}>
+                        <ActivityIndicator size="large" color="#3E920C" />
+                        <Text style={styles.loaderText}>Updating Cart...</Text>
+                    </View>
+                </View>
+            )}
+
             <BottomTab activeTab="Cart" isWholesale={isWholesale} />
         </View>
     );
@@ -365,6 +376,30 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#94a3b8',
         fontWeight: '600'
+    },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    loaderContainer: {
+        backgroundColor: '#fff',
+        padding: 24,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    loaderText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '600',
     }
 });
 

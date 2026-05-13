@@ -64,30 +64,19 @@ const ProfileScreen = ({ navigation, route }) => {
 
     const sections = [
         {
-            title: 'Shopping',
+            title: isWholesale ? 'Business & Shopping' : 'Shopping',
             items: [
                 { title: 'My Orders', icon: 'inventory', color: '#3B82F6', bg: '#EFF6FF', route: 'OrderHistory' },
                 { title: 'Wishlist', icon: 'favorite', color: '#F43F5E', bg: '#FFF1F2', route: '#' },
                 { title: 'Saved Addresses', icon: 'location-on', color: '#F59E0B', bg: '#FFFBEB', route: 'ManageAddress' },
-            ]
-        },
-        ...(isWholesale ? [{
-            title: 'Business',
-            items: [
-                {
+                ...(isWholesale ? [{
                     title: 'Business KYC',
                     icon: 'business-center',
                     color: '#10B981',
                     bg: '#ECFDF5',
                     route: 'BusinessKYC',
                     badge: user?.businessDetails?.verificationStatus || 'Pending'
-                },
-            ]
-        }] : []),
-        {
-            title: 'Support',
-            items: [
-                { title: 'Help & Support', icon: 'contact-support', color: '#0D9488', bg: '#F0FDFA', route: 'HelpSupport' },
+                }] : []),
             ]
         }
     ];
@@ -110,13 +99,21 @@ const ProfileScreen = ({ navigation, route }) => {
                 {/* Theme toggle removed */}
             </View>
 
-            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 150 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
                 {/* Profile Card */}
                 <TouchableOpacity
                     style={[styles.profileCard, isDarkMode && styles.darkCard]}
                     onPress={() => navigation.navigate('EditProfile')}
                     activeOpacity={0.7}
                 >
+                    {/* Logout Button inside Profile Card */}
+                    <TouchableOpacity 
+                        style={styles.cardLogoutBtn} 
+                        onPress={handleLogout}
+                    >
+                        <MaterialIcons name="logout" size={20} color="#F43F5E" />
+                    </TouchableOpacity>
+
                     <View style={styles.avatarWrapper}>
                         <View style={[styles.avatarContainer, isDarkMode && styles.darkAvatar]}>
                             <Image
@@ -187,16 +184,6 @@ const ProfileScreen = ({ navigation, route }) => {
                     </View>
                 ))}
 
-                {/* Logout */}
-                <View style={styles.footerActions}>
-                    <TouchableOpacity
-                        style={[styles.logoutBtn, isDarkMode && styles.darkLogoutBtn]}
-                        onPress={handleLogout}
-                    >
-                        <MaterialIcons name="logout" size={20} color="#F43F5E" />
-                        <Text style={styles.logoutText}>Logout</Text>
-                    </TouchableOpacity>
-                </View>
 
                 {/* Developer Credit (Inside Scroll) */}
                 <TouchableOpacity 
@@ -213,6 +200,14 @@ const ProfileScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
             </ScrollView>
 
+
+            {/* Floating Help & Support Button */}
+            <TouchableOpacity 
+                style={[styles.floatingHelpBtn, { bottom: insets.bottom + 120 }]} 
+                onPress={() => navigation.navigate('HelpSupport')}
+            >
+                <MaterialIcons name="support-agent" size={28} color="#fff" />
+            </TouchableOpacity>
 
             {/* Bottom Nav */}
             <BottomTab activeTab="Profile" isWholesale={isWholesale} isDarkMode={isDarkMode} />
@@ -343,6 +338,34 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#0F172A',
+    },
+    cardLogoutBtn: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FFF1F2',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    floatingHelpBtn: {
+        position: 'absolute',
+        right: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#f1811e',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 100,
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4.65,
     },
     editBtn: {
         padding: 6,
@@ -498,7 +521,7 @@ const styles = StyleSheet.create({
         letterSpacing: 1.5,
     },
     developerCard: {
-        marginTop: 32,
+        marginTop: 4,
         paddingVertical: 16,
         paddingHorizontal: 24,
         backgroundColor: '#fff',

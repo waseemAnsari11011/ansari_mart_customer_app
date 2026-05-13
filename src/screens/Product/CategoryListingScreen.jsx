@@ -59,9 +59,7 @@ const CategoryListingScreen = ({ navigation, route }) => {
                         <Icon name="arrow-back-ios" size={20} color="#1A1A1A" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>All Categories</Text>
-                    <TouchableOpacity style={styles.helpBtn}>
-                        <Icon name="help-outline" size={20} color="#64748B" />
-                    </TouchableOpacity>
+                    <View style={{ width: 40 }} />
                 </View>
 
                 <View style={styles.searchBar}>
@@ -132,14 +130,6 @@ const styles = StyleSheet.create({
         color: '#1A1A1A',
         flex: 1,
         textAlign: 'center',
-    },
-    helpBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#F8FAFC',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     searchBar: {
         flexDirection: 'row',
