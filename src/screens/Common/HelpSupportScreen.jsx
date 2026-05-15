@@ -1,20 +1,40 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, StatusBar, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, StatusBar, Linking, ActivityIndicator } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import api from '../../utils/api';
 
 const HelpSupportScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [expandedFaq, setExpandedFaq] = useState(null);
+    const [supportData, setSupportData] = useState({
+        mobile: '',
+        email: ''
+    });
+    const [loading, setLoading] = useState(true);
 
-    const faqs = [
-        { id: 1, q: 'How do I place a bulk order?', a: 'You can place a bulk order by switching to the Wholesale mode, selecting your business category, and adding the required quantities. Minimum order quantities apply for wholesale pricing.' },
-        { id: 2, q: 'What are the delivery charges?', a: 'Delivery is free for orders above ₹500 in Retail mode and above ₹5000 in Wholesale mode. Otherwise, standard delivery charges apply based on location.' },
-        { id: 3, q: 'How long does delivery take?', a: 'We promise next-day delivery for most locations if ordered before 8 PM. Bulk orders might take 1-2 business days depending on weight.' },
-        { id: 4, q: 'Can I return damaged products?', a: 'Yes, please contact support within 24 hours of delivery with photos of the damaged items for a refund or replacement.' },
-        { id: 5, q: 'How to update my GST details?', a: 'Go to Profile > Business KYC to update your GSTIN or other business documents.' },
-    ];
+    useEffect(() => {
+        const fetchSupport = async () => {
+            try {
+                const { data } = await api.get('/help-support');
+                if (data) {
+                    setSupportData({
+                        mobile: data.mobile || '',
+                        email: data.email || ''
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching support data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSupport();
+    }, []);
+
+    const faqs = [];
 
     return (
         <View style={[styles.container, isDarkMode && styles.darkContainer]}>
@@ -29,43 +49,47 @@ const HelpSupportScreen = ({ navigation }) => {
             </View>
 
             <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-                <View style={styles.contactCards}>
-                    <TouchableOpacity style={[styles.contactCard, isDarkMode && styles.darkCard]} onPress={() => Linking.openURL('tel:+919876543210')}>
-                        <View style={[styles.iconBox, { backgroundColor: 'rgba(46, 125, 50, 0.1)' }]}>
-                            <MaterialIcons name="phone-in-talk" size={24} color="#2E7D32" />
-                        </View>
-                        <View style={styles.cardInfo}>
-                            <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>Call Us</Text>
-                            <Text style={styles.cardSub}>+91 98765 43210</Text>
-                        </View>
-                    </TouchableOpacity>
+                {loading ? (
+                    <View style={{ py: 40, alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color="#2E7D32" />
+                        <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>Loading contact details...</Text>
+                    </View>
+                ) : (
+                    <View style={styles.contactCards}>
+                        <TouchableOpacity 
+                            style={[styles.contactCard, isDarkMode && styles.darkCard]} 
+                            onPress={() => Linking.openURL(`tel:${supportData.mobile}`)}
+                        >
+                            <View style={[styles.iconBox, { backgroundColor: 'rgba(46, 125, 50, 0.1)' }]}>
+                                <MaterialIcons name="phone-in-talk" size={24} color="#2E7D32" />
+                            </View>
+                            <View style={styles.cardInfo}>
+                                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>Call Us</Text>
+                                <Text style={styles.cardSub}>{supportData.mobile}</Text>
+                            </View>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity style={[styles.contactCard, isDarkMode && styles.darkCard]} onPress={() => Linking.openURL('mailto:support@ansarimart.com')}>
-                        <View style={[styles.iconBox, { backgroundColor: 'rgba(37, 99, 235, 0.1)' }]}>
-                            <MaterialIcons name="mail-outline" size={24} color="#2563EB" />
-                        </View>
-                        <View style={styles.cardInfo}>
-                            <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>Email Support</Text>
-                            <Text style={styles.cardSub}>support@ansarimart.com</Text>
-                        </View>
-                    </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={[styles.contactCard, isDarkMode && styles.darkCard]} 
+                            onPress={() => Linking.openURL(`mailto:${supportData.email}`)}
+                        >
+                            <View style={[styles.iconBox, { backgroundColor: 'rgba(37, 99, 235, 0.1)' }]}>
+                                <MaterialIcons name="mail-outline" size={24} color="#2563EB" />
+                            </View>
+                            <View style={styles.cardInfo}>
+                                <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>Email Support</Text>
+                                <Text style={styles.cardSub}>{supportData.email}</Text>
+                            </View>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity style={[styles.contactCard, isDarkMode && styles.darkCard]}>
-                        <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                            <MaterialIcons name="chat" size={24} color="#F59E0B" />
-                        </View>
-                        <View style={styles.cardInfo}>
-                            <Text style={[styles.cardTitle, isDarkMode && styles.darkText]}>Live Chat</Text>
-                            <Text style={styles.cardSub}>Usually replies in 5m</Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
+                    </View>
+                )}
 
-                <View style={[styles.divider, isDarkMode && styles.darkDivider]} />
-
-                <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>Frequently Asked Questions</Text>
-
-                <View style={styles.faqList}>
+                {faqs.length > 0 && (
+                    <>
+                        <View style={[styles.divider, isDarkMode && styles.darkDivider]} />
+                        <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>Frequently Asked Questions</Text>
+                        <View style={styles.faqList}>
                     {faqs.map((faq) => (
                         <TouchableOpacity
                             key={faq.id}
@@ -87,6 +111,8 @@ const HelpSupportScreen = ({ navigation }) => {
                         </TouchableOpacity>
                     ))}
                 </View>
+            </>
+        )}
             </ScrollView>
         </View>
     );

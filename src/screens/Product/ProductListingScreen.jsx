@@ -27,12 +27,16 @@ const ProductListingScreen = ({ navigation, route }) => {
     const [hasMore, setHasMore] = useState(true);
     const [quickViewVisible, setQuickViewVisible] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const fetchProducts = async (pageNumber = 1) => {
+    const fetchProducts = async (pageNumber = 1, search = searchQuery) => {
         try {
             let url = `/products?userType=${isWholesaleRoute ? 'business' : 'retail'}`;
             if (categoryName && categoryName !== 'All Products') {
                 url += `&category=${encodeURIComponent(categoryName)}`;
+            }
+            if (search) {
+                url += `&search=${encodeURIComponent(search)}`;
             }
             url += `&page=${pageNumber}&limit=20`;
 
@@ -57,8 +61,19 @@ const ProductListingScreen = ({ navigation, route }) => {
 
     useEffect(() => {
         setLoading(true);
-        fetchProducts(1);
+        fetchProducts(1, searchQuery);
     }, [categoryName]);
+
+    // Search effect with debounce
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            if (loading) return; // Prevent double fetch on initial load
+            setLoading(true);
+            fetchProducts(1, searchQuery);
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
     const handleLoadMore = () => {
         if (!loadingMore && hasMore) {
@@ -145,20 +160,15 @@ const ProductListingScreen = ({ navigation, route }) => {
                         style={[styles.searchInput, isDarkMode && styles.darkText]}
                         placeholder={`Search in ${categoryName}...`}
                         placeholderTextColor="#94A3B8"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
                     />
-                    <TouchableOpacity style={styles.filterBtn}>
-                        <MaterialIcons name="tune" size={20} color="#2E7D32" />
-                    </TouchableOpacity>
-                </View>
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <MaterialIcons name="close" size={20} color="#94A3B8" />
+                        </TouchableOpacity>
+                    )}
 
-                <View style={{ height: 40 }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subCatScroll}>
-                        {['All', 'Premium', 'Organic', 'Combo Offers', 'Value Packs'].map((tag, idx) => (
-                            <TouchableOpacity key={idx} style={[styles.subCatBtn, idx === 0 && styles.subCatBtnActive, isDarkMode && idx !== 0 && styles.darkSubCat]}>
-                                <Text style={[styles.subCatText, idx === 0 && styles.subCatTextActive, isDarkMode && idx !== 0 && styles.darkText]}>{tag}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
                 </View>
             </View>
 

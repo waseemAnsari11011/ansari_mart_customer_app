@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Modal, Animated, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { addBulkToCartThunk, selectCartTotal } from '../../redux/slices/cartSlice';
@@ -34,7 +35,7 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
 
     if (!product) return null;
 
-    const handleAddToCart = () => {
+    const performAddToCart = () => {
         try {
             const itemsToAdd = Object.entries(quantities)
                 .filter(([_, qty]) => qty > 0)
@@ -44,9 +45,6 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                     isWholesale,
                     tierIndex: parseInt(idx)
                 }));
-            
-            onClose();
-            navigation.navigate('Cart', { isWholesale });
 
             if (itemsToAdd.length > 0) {
                 dispatch(addBulkToCartThunk({ items: itemsToAdd }));
@@ -54,6 +52,17 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
         } catch (error) {
             console.error('Failed to add to cart:', error);
         }
+    };
+
+    const handleClose = () => {
+        performAddToCart();
+        onClose();
+    };
+
+    const handleViewCart = () => {
+        performAddToCart();
+        onClose();
+        navigation.navigate('Cart', { isWholesale });
     };
 
     const activePricingArray = isWholesale ? product?.businessPricing : product?.retailPricing;
@@ -82,19 +91,24 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
             visible={isVisible}
             transparent={true}
             animationType="slide"
-            onRequestClose={onClose}
+            onRequestClose={handleClose}
         >
             <View style={styles.modalContainer}>
-                <TouchableOpacity 
-                    style={styles.backdrop} 
-                    activeOpacity={1} 
-                    onPress={onClose} 
+                <TouchableOpacity
+                    style={styles.backdrop}
+                    activeOpacity={1}
+                    onPress={handleClose}
                 />
                 <View style={[styles.content, { maxHeight: height * 0.85, paddingBottom: insets.bottom || 20 }]}>
                     <View style={styles.header}>
                         <View style={styles.headerIndicator} />
-                        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                            <MaterialIcons name="close" size={24} color="#64748B" />
+                        <TouchableOpacity 
+                            style={styles.closeBtn} 
+                            onPress={handleClose}
+                            activeOpacity={0.6}
+                            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                        >
+                            <Ionicons name="close" size={20} color="#ffffff" />
                         </TouchableOpacity>
                     </View>
 
@@ -132,8 +146,8 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                             const qty = quantities[idx] || 0;
                                             const isActive = qty > 0;
                                             return (
-                                                <View 
-                                                    key={idx} 
+                                                <View
+                                                    key={idx}
                                                     style={[styles.tableRow, isActive && styles.tableRowActive]}
                                                 >
                                                     <View style={[styles.cell, { flex: 1.5 }]}>
@@ -146,14 +160,14 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                                     <View style={[styles.cell, { flex: 1, alignItems: 'center' }]}>
                                                         <Text style={[styles.tierPrice, isActive && { color: '#3E9400' }]}>₹{tier.price}</Text>
                                                     </View>
-                                                    
+
                                                     <View style={[styles.cell, { flex: 1.2, alignItems: 'flex-end' }]}>
                                                         <View style={[styles.tierQtySelector, isActive && styles.tierQtySelectorActive]}>
-                                                            <TouchableOpacity 
+                                                            <TouchableOpacity
                                                                 style={styles.tierQtyBtn}
                                                                 onPress={() => {
                                                                     const newQty = Math.max(0, qty - 1);
-                                                                    setQuantities(prev => ({...prev, [idx]: newQty}));
+                                                                    setQuantities(prev => ({ ...prev, [idx]: newQty }));
                                                                 }}
                                                             >
                                                                 <MaterialIcons name="remove" size={14} color={isActive ? "#3E9400" : "#64748b"} />
@@ -161,11 +175,11 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                                             <Text style={[styles.tierQtyValue, isActive && { color: '#3E9400', fontWeight: 'bold' }]}>
                                                                 {qty}
                                                             </Text>
-                                                            <TouchableOpacity 
+                                                            <TouchableOpacity
                                                                 style={[styles.tierQtyBtn, isActive && styles.tierQtyBtnActive]}
                                                                 onPress={() => {
                                                                     const newQty = qty + 1;
-                                                                    setQuantities(prev => ({...prev, [idx]: newQty}));
+                                                                    setQuantities(prev => ({ ...prev, [idx]: newQty }));
                                                                 }}
                                                             >
                                                                 <MaterialIcons name="add" size={14} color={isActive ? "#fff" : "#64748b"} />
@@ -226,8 +240,8 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                     <Text style={styles.totalLabel}>Total Amount</Text>
                                     <Text style={styles.totalPrice}>₹{totalAmount.toLocaleString()}</Text>
                                 </View>
-                                <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#F58220' }]} onPress={handleAddToCart}>
-                                    <Text style={styles.primaryBtnText}>Add to Cart</Text>
+                                <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#F58220' }]} onPress={handleViewCart}>
+                                    <Text style={styles.primaryBtnText}>View Cart</Text>
                                     <MaterialIcons name="shopping-cart" size={20} color="#fff" />
                                 </TouchableOpacity>
                             </View>
@@ -269,8 +283,17 @@ const styles = StyleSheet.create({
     closeBtn: {
         position: 'absolute',
         right: 16,
-        top: 8,
-        padding: 8,
+        top: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#ef4444',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#ef4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
     },
     scrollContent: {
         paddingHorizontal: 20,
