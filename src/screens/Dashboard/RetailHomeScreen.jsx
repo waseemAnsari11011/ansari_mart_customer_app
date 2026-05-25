@@ -11,8 +11,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 import api, { resolveImageUrl } from '../../utils/api';
-import { getBasePrice } from '../../utils/pricing';
+import { getBasePrice, getLowestPrice } from '../../utils/pricing';
 import { filterProducts } from '../../hooks/useProductSearch';
+
+const COLS = 4;
+const CARD_GAP = 8;
+const SIDE_PAD = 16;
+const CARD_SIZE = (width - SIDE_PAD * 2 - CARD_GAP * (COLS - 1)) / COLS;
 
 const RetailHomeScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -44,7 +49,7 @@ const RetailHomeScreen = ({ navigation }) => {
             try {
                 // Load categories and settings independently on initial load
                 const [catRes, settingsRes] = await Promise.all([
-                    fetchWithRetry(() => api.get('/categories')),
+                    fetchWithRetry(() => api.get('/categories/home?userType=retail')),
                     fetchWithRetry(() => api.get('/settings')),
                 ]);
                 dispatch(setCategories(catRes.data));
@@ -56,7 +61,7 @@ const RetailHomeScreen = ({ navigation }) => {
         }
 
         try {
-            const prodRes = await fetchWithRetry(() => api.get(`/products?userType=retail&page=${page}&limit=50`));
+            const prodRes = await fetchWithRetry(() => api.get(`/products?userType=retail&page=${page}&limit=20`));
             dispatch(setProducts(prodRes.data));
         } catch (error) {
             console.error('Error loading products:', error);
@@ -104,16 +109,9 @@ const RetailHomeScreen = ({ navigation }) => {
         if (products.length === 0 && !loadingMore) {
             data.push({ type: 'LOADING', id: 'loading' });
         } else {
-            // Group products by category (Showing only first 4 per category)
+            // Group products by category (Showing only first 4 per category from backend)
             categories.forEach(cat => {
-                const categoryProducts = products.filter(p => {
-                    const pCatId = (p.category?._id || p.category || '').toString();
-                    const catId = (cat._id || '').toString();
-                    const pCatName = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).toLowerCase().trim();
-                    const catName = (cat.name || '').toLowerCase().trim();
-                    
-                    return (pCatId === catId && catId !== '') || (pCatName === catName && catName !== '');
-                });
+                const categoryProducts = cat.products || [];
                 if (categoryProducts.length > 0) {
                     data.push({ 
                         type: 'SECTION_HEADER', 
@@ -122,42 +120,26 @@ const RetailHomeScreen = ({ navigation }) => {
                         categoryName: cat.name 
                     });
                     
-                    const displayProducts = categoryProducts.slice(0, 4);
-                    for (let i = 0; i < displayProducts.length; i += 2) {
+                    for (let i = 0; i < categoryProducts.length; i += 2) {
                         data.push({ 
                             type: 'PRODUCT_ROW', 
                             id: `row-${cat._id}-${i}`, 
-                            items: displayProducts.slice(i, i + 2) 
+                            items: categoryProducts.slice(i, i + 2) 
                         });
                     }
                 }
             });
 
-            // Handle products with no category
-            const catIds = categories.map(c => c._id.toString());
-            const otherProducts = products.filter(p => {
-                const pCatId = (p.category?._id || p.category || '').toString();
-                return !catIds.includes(pCatId);
-            });
-            if (otherProducts.length > 0) {
-                data.push({ type: 'SECTION_HEADER', id: 'header-others', title: 'Others' });
-                for (let i = 0; i < otherProducts.length; i += 2) {
+            // All Products Section (Showing All with Infinite Scroll)
+            if (products.length > 0) {
+                data.push({ type: 'SECTION_HEADER', id: 'header-all', title: 'All Products' });
+                for (let i = 0; i < products.length; i += 2) {
                     data.push({ 
                         type: 'PRODUCT_ROW', 
-                        id: `row-others-${i}`, 
-                        items: otherProducts.slice(i, i + 2) 
+                        id: `row-all-${i}`, 
+                        items: products.slice(i, i + 2) 
                     });
                 }
-            }
-
-            // All Products Section (Showing All with Infinite Scroll)
-            data.push({ type: 'SECTION_HEADER', id: 'header-all', title: 'All Products' });
-            for (let i = 0; i < products.length; i += 2) {
-                data.push({ 
-                    type: 'PRODUCT_ROW', 
-                    id: `row-all-${i}`, 
-                    items: products.slice(i, i + 2) 
-                });
             }
         }
         return data;
@@ -208,25 +190,24 @@ const RetailHomeScreen = ({ navigation }) => {
                                 <Text style={styles.viewAll}>View All</Text>
                             </TouchableOpacity>
                         </View>
-                        <FlatList
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.categoryList}
-                            data={categories}
-                            keyExtractor={(c, idx) => c._id || idx.toString()}
-                            renderItem={({ item: cat }) => (
-                                <TouchableOpacity style={styles.categoryItem} onPress={() => navigation.navigate('ProductListing', { categoryName: cat.name, isWholesale: false })}>
-                                    <View style={[styles.categoryIcon, { backgroundColor: '#F0FDF4' }]}>
+                        <View style={styles.categoryGrid}>
+                            {categories.map((cat, idx) => (
+                                <TouchableOpacity 
+                                    key={cat._id || idx.toString()} 
+                                    style={styles.categoryGridItem} 
+                                    onPress={() => navigation.navigate('ProductListing', { categoryName: cat.name, isWholesale: false })}
+                                >
+                                    <View style={[styles.categoryIconGrid, { backgroundColor: '#F0FDF4' }]}>
                                         {cat.image ? (
                                             <Image source={{ uri: resolveImageUrl(cat.image) }} style={styles.catImage} />
                                         ) : (
                                             <MaterialIcons name="category" size={28} color="#16A34A" />
                                         )}
                                     </View>
-                                    <Text style={styles.categoryLabel}>{cat.name}</Text>
+                                    <Text style={styles.categoryLabelGrid} numberOfLines={2}>{cat.name}</Text>
                                 </TouchableOpacity>
-                            )}
-                        />
+                            ))}
+                        </View>
                     </>
                 );
             case 'SECTION_HEADER':
@@ -273,11 +254,14 @@ const RetailHomeScreen = ({ navigation }) => {
                                     {!!product.isCombo && <View style={[styles.productBadge, { backgroundColor: '#3B82F6' }]}><Text style={styles.badgeText}>COMBO</Text></View>}
                                 </View>
                                 <View style={styles.productInfo}>
-                                    <Text style={styles.productBrand}>{product.brand || 'ANSARI MART'}</Text>
+                                    <Text style={styles.productBrand}>{product.brand || ''}</Text>
                                     <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+                                    {!!product.mrp && (
+                                        <Text style={styles.mrpTextSmall}>MRP: ₹{product.mrp}</Text>
+                                    )}
                                     <View style={styles.productFooter}>
                                         <View>
-                                            <Text style={styles.productPrice}>MRP: ₹{product.mrp || '0'}</Text>
+                                            <Text style={styles.productPrice}>₹{getLowestPrice(product, false)}</Text>
                                         </View>
                                         <TouchableOpacity 
                                             style={styles.addBtn}
@@ -427,6 +411,34 @@ const styles = StyleSheet.create({
     categoryIcon: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 8, overflow: 'hidden' },
     catImage: { width: '100%', height: '100%', resizeMode: 'cover' },
     categoryLabel: { fontSize: 11, fontWeight: '600', color: '#1A1A1A', textAlign: 'center' },
+    categoryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        paddingHorizontal: SIDE_PAD,
+        gap: CARD_GAP,
+        marginBottom: 16,
+    },
+    categoryGridItem: {
+        width: CARD_SIZE,
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    categoryIconGrid: {
+        width: 56,
+        height: 56,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+        overflow: 'hidden',
+    },
+    categoryLabelGrid: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#1A1A1A',
+        textAlign: 'center',
+        lineHeight: 14,
+    },
     retailTag: { backgroundColor: 'rgba(62, 148, 0, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
     retailTagText: { color: '#3e9400', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
     productGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12 },
@@ -439,11 +451,10 @@ const styles = StyleSheet.create({
     badgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
     productInfo: { flex: 1 },
     productBrand: { fontSize: 8, fontWeight: '800', color: '#94A3B8', marginBottom: 1, letterSpacing: 0.5 },
-    productName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 2, height: 38, lineHeight: 18 },
-    mrpTag: { backgroundColor: '#F1F5F9', alignSelf: 'flex-start', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, marginBottom: 4 },
-    mrpText: { fontSize: 11, color: '#000000', fontWeight: '900' },
-    productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 2 },
-    productPrice: { fontSize: 13, fontWeight: '900', color: '#000000' },
+    productName: { fontSize: 13, fontWeight: '700', color: '#1A1A1A', marginBottom: 4, lineHeight: 17 },
+    mrpTextSmall: { fontSize: 10, color: '#94A3B8', textDecorationLine: 'line-through', marginBottom: 2, fontWeight: '600' },
+    productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: 4 },
+    productPrice: { fontSize: 15, fontWeight: '900', color: '#1A1A1A' },
     productOldPrice: { fontSize: 9, color: '#94A3B8', textDecorationLine: 'line-through' },
     addBtn: { backgroundColor: '#3e9400', width: 26, height: 26, borderRadius: 6, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#3e9400', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, position: 'relative' },
     qtyBadge: { position: 'absolute', top: -8, right: -8, backgroundColor: '#EF4444', minWidth: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#fff' },

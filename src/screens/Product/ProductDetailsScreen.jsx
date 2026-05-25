@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCartThunk, addBulkToCartThunk } from '../../redux/slices/cartSlice';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, StatusBar, Animated } from 'react-native';
@@ -69,6 +69,34 @@ const ProductDetailsScreen = ({ navigation, route }) => {
         setQuantities(initialQtys);
     }, [product?._id, cartItems, isWholesale]);
 
+    const quantitiesRef = useRef(quantities);
+    useEffect(() => {
+        quantitiesRef.current = quantities;
+    }, [quantities]);
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', () => {
+            try {
+                const itemsToAdd = Object.entries(quantitiesRef.current)
+                    .filter(([_, qty]) => qty > 0)
+                    .map(([idx, qty]) => ({
+                        productId: product?._id,
+                        quantity: qty,
+                        isWholesale,
+                        tierIndex: parseInt(idx)
+                    }));
+
+                if (itemsToAdd.length > 0) {
+                    dispatch(addBulkToCartThunk({ items: itemsToAdd }));
+                }
+            } catch (error) {
+                console.error('Auto-add to cart failed:', error);
+            }
+        });
+
+        return unsubscribe;
+    }, [navigation, product?._id, isWholesale, dispatch]);
+
     const handleAddToCart = () => {
         try {
             const itemsToAdd = Object.entries(quantities)
@@ -119,6 +147,20 @@ const ProductDetailsScreen = ({ navigation, route }) => {
         const qty = quantities[idx] || 0;
         return sum + (tier.price * qty);
     }, 0) || 0;
+
+    const totalSelectedQty = Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
+
+    const otherItemsInCart = cartItems.filter(item => {
+        const itemId = item.product?._id || item.product;
+        return !(itemId === product?._id && item.isWholesale === isWholesale);
+    });
+
+    const otherItemsQty = otherItemsInCart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const otherItemsAmount = otherItemsInCart.reduce((sum, item) => {
+        if (!item.product) return sum;
+        const price = calculateProductPrice(item.product, item.quantity, item.isWholesale, item.tierIndex || 0);
+        return sum + (price * item.quantity);
+    }, 0);
 
     return (
         <View style={[styles.container, isDarkMode && styles.darkContainer]}>
@@ -196,7 +238,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                 {/* Info Section */}
                 <View style={[styles.infoCard, isDarkMode && styles.darkCard]}>
                     <View style={styles.brandRow}>
-                        <Text style={styles.brandText}>{product?.brand || 'ANSARI MART'}</Text>
+                        <Text style={styles.brandText}>{product?.brand || ''}</Text>
                         {!!product?.mrp && (
                             <Text style={[styles.brandText, { color: '#2563eb', fontWeight: '900' }]}>
                                 MRP: ₹{product.mrp}
@@ -297,13 +339,21 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                                         );
                                     })}
                             </View>
+                            <View style={[styles.selectionSummaryDivider, isDarkMode && styles.darkSelectionSummaryDivider]} />
+                            <View style={styles.selectionTotalRow}>
+                                <Text style={[styles.selectionTotalLabel, isDarkMode && styles.darkText]}>Total:</Text>
+                                <Text style={[styles.selectionTotalPrice, isDarkMode && styles.darkSelectionTotalPrice]}>₹{totalAmount.toLocaleString()}</Text>
+                            </View>
                         </View>
                     )}
 
                     <View style={styles.totalRow}>
-                        <View>
-                            <Text style={styles.totalLabel}>Total Amount</Text>
-                            <Text style={styles.totalPrice}>₹{totalAmount.toLocaleString()}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <MaterialIcons name="shopping-basket" size={18} color="#64748b" style={{ marginRight: 6 }} />
+                            <Text style={styles.totalPrice}>
+                                <Text style={styles.totalLabel}>{otherItemsQty + totalSelectedQty} {otherItemsQty + totalSelectedQty === 1 ? 'Item' : 'Items'} | </Text>
+                                ₹{(otherItemsAmount + totalAmount).toLocaleString()}
+                            </Text>
                         </View>
                     </View>
 
@@ -674,6 +724,32 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#1e293b',
     },
+    selectionSummaryDivider: {
+        height: 1,
+        backgroundColor: '#E2E8F0',
+        marginVertical: 10,
+    },
+    darkSelectionSummaryDivider: {
+        backgroundColor: '#334155',
+    },
+    selectionTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    selectionTotalLabel: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: '#1e293b',
+    },
+    selectionTotalPrice: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#3E9400',
+    },
+    darkSelectionTotalPrice: {
+        color: '#4ade80',
+    },
     totalRow: {
         backgroundColor: '#fff',
         padding: 16,
@@ -690,11 +766,12 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     totalLabel: {
-        fontSize: 12,
-        color: '#94a3b8',
+        fontSize: 16,
+        color: '#64748b',
+        fontWeight: '900',
     },
     totalPrice: {
-        fontSize: 24,
+        fontSize: 16,
         fontWeight: '900',
         color: '#3E9400',
     },
@@ -858,6 +935,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
+
 });
 
 export default ProductDetailsScreen;

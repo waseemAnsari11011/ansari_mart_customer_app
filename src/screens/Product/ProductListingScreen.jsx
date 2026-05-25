@@ -6,7 +6,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ProductQuickView from '../../components/Product/ProductQuickView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { resolveImageUrl } from '../../utils/api';
-import { getBasePrice } from '../../utils/pricing';
+import { getBasePrice, getLowestPrice } from '../../utils/pricing';
 
 const { width } = Dimensions.get('window');
 
@@ -104,16 +104,16 @@ const ProductListingScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.productInfo}>
-                <Text style={styles.productBrand}>{item.brand || 'ANSARI MART'}</Text>
+                <Text style={styles.productBrand}>{item.brand || ''}</Text>
                 <Text style={[styles.productName, isDarkMode && styles.darkText]} numberOfLines={1}>{item.name}</Text>
-                <View style={styles.mrpTag}>
-                    <Text style={styles.mrpText}>MRP: ₹{item.mrp || '0'}</Text>
-                </View>
+                {!!item.mrp && (
+                    <Text style={styles.mrpTextSmall}>MRP: ₹{item.mrp}</Text>
+                )}
 
                 <View style={styles.productFooter}>
                     <View>
                         <Text style={[styles.productPrice, isDarkMode && styles.darkText]}>
-                            ₹{getBasePrice(item, isWholesaleRoute)}
+                            ₹{getLowestPrice(item, isWholesaleRoute)}
                             {(() => {
                                 const pricingArr = isWholesaleRoute ? item.businessPricing : item.retailPricing;
                                 const unitToDisplay = pricingArr && pricingArr.length > 0 ? pricingArr[0].unit : null;
@@ -242,10 +242,9 @@ const styles = StyleSheet.create({
     badgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
     productInfo: { flex: 1 },
     productBrand: { fontSize: 10, fontWeight: 'bold', color: '#94A3B8', marginBottom: 4, letterSpacing: 0.5 },
-    productName: { fontSize: 14, fontWeight: 'bold', color: '#1E293B', marginBottom: 4 },
-    mrpTag: { backgroundColor: '#F1F5F9', alignSelf: 'flex-start', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, marginBottom: 8 },
-    mrpText: { fontSize: 11, color: '#000000', fontWeight: '900' },
-    productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' },
+    productName: { fontSize: 13, fontWeight: '700', color: '#1A1A1A', marginBottom: 4 },
+    mrpTextSmall: { fontSize: 10, color: '#94A3B8', textDecorationLine: 'line-through', marginBottom: 2, fontWeight: '600' },
+    productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: 4 },
     productPrice: { fontSize: 16, fontWeight: '900', color: '#000000' },
     unitText: { fontSize: 10, fontWeight: '600', color: '#64748B' },
     productOldPrice: { fontSize: 12, color: '#94A3B8', textDecorationLine: 'line-through', marginTop: 2 },

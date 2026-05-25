@@ -116,7 +116,7 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                         {/* Info Section */}
                         <View style={styles.infoCard}>
                             <View style={styles.brandRow}>
-                                <Text style={styles.brandText}>{product?.brand || 'ANSARI MART'}</Text>
+                                <Text style={styles.brandText}>{product?.brand || ''}</Text>
                                 {!!product?.mrp && (
                                     <Text style={[styles.brandText, { color: '#2563eb', fontWeight: '900' }]}>
                                         MRP: ₹{product.mrp}
@@ -210,35 +210,21 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                                 );
                                             })}
                                     </View>
+                                    <View style={styles.selectionSummaryDivider} />
+                                    <View style={styles.selectionTotalRow}>
+                                        <Text style={styles.selectionTotalLabel}>Total:</Text>
+                                        <Text style={styles.selectionTotalPrice}>₹{totalAmount.toLocaleString()}</Text>
+                                    </View>
                                 </View>
                             )}
 
-                            {/* Cart Summary Card */}
-                            <View style={styles.cartSummaryCard}>
-                                <View style={styles.cartSummaryHeader}>
-                                    <MaterialIcons name="shopping-basket" size={18} color="#3E9400" />
-                                    <Text style={styles.cartSummaryTitle}>Your Cart Total</Text>
-                                </View>
-                                <View style={styles.cartSummaryBody}>
-                                    <View style={styles.cartSummaryItem}>
-                                        <Text style={styles.cartSummaryLabel}>Total Items:</Text>
-                                        <Text style={styles.cartSummaryValue}>
-                                            {otherItemsQty + totalSelectedQty}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.cartSummaryItem}>
-                                        <Text style={styles.cartSummaryLabel}>Total Price:</Text>
-                                        <Text style={[styles.cartSummaryValue, { color: '#3E9400', fontWeight: '900' }]}>
-                                            ₹{(otherItemsAmount + totalAmount).toLocaleString()}
-                                        </Text>
-                                    </View>
-                                </View>
-                            </View>
-
                             <View style={styles.totalRow}>
-                                <View>
-                                    <Text style={styles.totalLabel}>Total Amount</Text>
-                                    <Text style={styles.totalPrice}>₹{totalAmount.toLocaleString()}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <MaterialIcons name="shopping-basket" size={18} color="#64748b" style={{ marginRight: 6 }} />
+                                    <Text style={styles.totalPrice}>
+                                        <Text style={styles.totalLabel}>{otherItemsQty + totalSelectedQty} {otherItemsQty + totalSelectedQty === 1 ? 'Item' : 'Items'} | </Text>
+                                        ₹{(otherItemsAmount + totalAmount).toLocaleString()}
+                                    </Text>
                                 </View>
                                 <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#F58220' }]} onPress={handleViewCart}>
                                     <Text style={styles.primaryBtnText}>View Cart</Text>
@@ -460,6 +446,26 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#1e293b',
     },
+    selectionSummaryDivider: {
+        height: 1,
+        backgroundColor: '#E2E8F0',
+        marginVertical: 10,
+    },
+    selectionTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    selectionTotalLabel: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: '#1e293b',
+    },
+    selectionTotalPrice: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#3E9400',
+    },
     totalRow: {
         backgroundColor: '#fff',
         padding: 16,
@@ -476,11 +482,12 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     totalLabel: {
-        fontSize: 11,
-        color: '#94a3b8',
+        fontSize: 16,
+        color: '#64748b',
+        fontWeight: '900',
     },
     totalPrice: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: '900',
         color: '#3E9400',
     },
@@ -498,46 +505,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
     },
-    cartSummaryCard: {
-        backgroundColor: '#F0FDF4',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#DCFCE7',
-    },
-    cartSummaryHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#DCFCE7',
-        paddingBottom: 8,
-    },
-    cartSummaryTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#166534',
-    },
-    cartSummaryBody: {
-        gap: 8,
-    },
-    cartSummaryItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    cartSummaryLabel: {
-        fontSize: 13,
-        color: '#166534',
-        fontWeight: '500',
-    },
-    cartSummaryValue: {
-        fontSize: 14,
-        color: '#166534',
-        fontWeight: 'bold',
-    },
+
 });
 
 export default ProductQuickView;

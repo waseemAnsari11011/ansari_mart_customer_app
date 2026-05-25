@@ -22,3 +22,11 @@ export const calculateProductPrice = (product, quantity, isWholesale = false, ti
 export const getBasePrice = (product, isWholesale = false) => {
     return calculateProductPrice(product, 1, isWholesale);
 };
+
+export const getLowestPrice = (product, isWholesale = false) => {
+    if (!product) return 0;
+    const pricingTiers = isWholesale ? product.businessPricing : product.retailPricing;
+    if (!pricingTiers || !Array.isArray(pricingTiers) || pricingTiers.length === 0) return 0;
+    
+    return Math.min(...pricingTiers.map(t => t.price));
+};
