@@ -52,6 +52,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
+    const deliveryFee = order.deliveryFee || 0;
+    const itemSubtotal = order.totalPrice - deliveryFee;
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -73,12 +76,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                             <Text style={styles.orderIdLabel}>ORDER ID</Text>
                             <Text style={styles.orderIdText}>#{order._id?.toString().length > 12 ? order._id.substring(order._id.length - 8) : order._id}</Text>
                         </View>
-                        <View style={[styles.statusBadge, { 
+                        <View style={[styles.statusBadge, {
                             backgroundColor: order.status === 'Delivered' ? 'rgba(62, 148, 0, 0.1)' : 'rgba(246, 139, 30, 0.1)',
                             borderColor: order.status === 'Delivered' ? 'rgba(62, 148, 0, 0.2)' : 'rgba(246, 139, 30, 0.2)'
                         }]}>
-                            <Text style={[styles.statusBadgeText, { 
-                                color: order.status === 'Delivered' ? '#3E9400' : '#F68B1E' 
+                            <Text style={[styles.statusBadgeText, {
+                                color: order.status === 'Delivered' ? '#3E9400' : '#F68B1E'
                             }]}>{order.status?.toUpperCase()}</Text>
                         </View>
                     </View>
@@ -116,11 +119,28 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                     <View style={styles.billingCard}>
                         <View style={styles.billingRow}>
                             <Text style={styles.billingLabel}>Item Subtotal</Text>
-                            <Text style={styles.billingValue}>₹{order.totalPrice}</Text>
+                            <Text style={styles.billingValue}>
+                                ₹{itemSubtotal.toLocaleString('en-IN')}
+                            </Text>
                         </View>
+
                         <View style={styles.billingRow}>
                             <Text style={styles.billingLabel}>Delivery Fee</Text>
-                            <Text style={[styles.billingValue, { color: '#3E9400' }]}>FREE</Text>
+
+                            {deliveryFee > 0 ? (
+                                <Text style={styles.billingValue}>
+                                    ₹{deliveryFee.toLocaleString('en-IN')}
+                                </Text>
+                            ) : (
+                                <Text
+                                    style={[
+                                        styles.billingValue,
+                                        { color: '#3E9400', fontWeight: 'bold' }
+                                    ]}
+                                >
+                                    FREE
+                                </Text>
+                            )}
                         </View>
                         <View style={styles.divider} />
                         <View style={styles.totalRow}>
@@ -153,10 +173,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                             <Text style={styles.sectionLabel}>PAYMENT METHOD</Text>
                             <View style={styles.paymentCard}>
                                 <View style={styles.paymentLeft}>
-                                    <MaterialIcons 
-                                        name={order.paymentMethod?.includes('ONLINE') ? "qr-code-scanner" : "payments"} 
-                                        size={20} 
-                                        color="#3E9400" 
+                                    <MaterialIcons
+                                        name={order.paymentMethod?.includes('ONLINE') ? "qr-code-scanner" : "payments"}
+                                        size={20}
+                                        color="#3E9400"
                                     />
                                     <Text style={styles.paymentText}>
                                         {order.paymentMethod?.includes('ONLINE') ? 'Online Payment' : 'Cash on Delivery'}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
@@ -24,6 +24,8 @@ const CheckoutScreen = ({ navigation, route }) => {
     const { user } = useSelector((state) => state.auth);
     const { addresses, loading: addressLoading } = useSelector((state) => state.address);
     const isWholesale = route?.params?.isWholesale ?? (user?.type === 'Business');
+    const [showKycModal, setShowKycModal] = useState(false);
+    const [kycMessage, setKycMessage] = useState('');
 
     // Get selected address (default to first default address if none selected manually)
     const selectedAddress = addresses.find(addr => addr.isDefault) || addresses[0];
@@ -38,9 +40,16 @@ const CheckoutScreen = ({ navigation, route }) => {
         return total + unitPrice * item.quantity;
     }, 0);
 
-    const deliveryFee = 0; // Can be dynamic based on subtotal or address
-    const taxRate = 0;
-    const taxAmount = 0;
+    let deliveryFee = 0;
+
+    if (user?.type === 'Retail') {
+        deliveryFee = subtotal < 500 ? 30 : 0;
+    }
+
+    if (user?.type === 'Business') {
+        deliveryFee = subtotal < 4000 ? 50 : 0;
+    }
+
     const orderTotal = subtotal + deliveryFee;
 
     const handlePlaceOrder = async () => {
@@ -88,7 +97,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                     const pricingArray = isWholesale ? item.product?.businessPricing : item.product?.retailPricing;
                     const tier = pricingArray?.[item.tierIndex || 0];
                     const unitLabel = tier?.unit ? ` (${tier.unit})` : '';
-                    
+
                     return {
                         product: item.product?._id,
                         name: (item.product?.name || 'Product') + unitLabel,
@@ -125,8 +134,21 @@ const CheckoutScreen = ({ navigation, route }) => {
                 });
             }
         } catch (error) {
-            console.error('Order placement failed:', error);
-            Alert.alert('Error', error.response?.data?.message || 'Failed to place order. Please try again.');
+            if (error.response?.status === 403) {
+                setKycMessage(
+                    error.response?.data?.message ||
+                    'Your business account is awaiting approval.'
+                );
+
+                setShowKycModal(true);
+                return;
+            }
+
+            Alert.alert(
+                'Error',
+                error.response?.data?.message ||
+                'Failed to place order. Please try again.'
+            );
         } finally {
             setLoading(false);
         }
@@ -341,7 +363,17 @@ const CheckoutScreen = ({ navigation, route }) => {
                         </View>
                         <View style={styles.summaryItemRow}>
                             <Text style={styles.summaryItemLabel}>Delivery Charges</Text>
-                            <Text style={[styles.summaryItemValue, { color: '#3E9400', fontWeight: 'bold' }]}>FREE</Text>
+                            <Text
+                                style={[
+                                    styles.summaryItemValue,
+                                    {
+                                        color: deliveryFee === 0 ? '#3E9400' : '#F97316',
+                                        fontWeight: 'bold'
+                                    }
+                                ]}
+                            >
+                                {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                            </Text>
                         </View>
                         <View style={styles.finalTotalRow}>
                             <Text style={styles.finalTotalLabel}>Total Amount</Text>
@@ -369,6 +401,44 @@ const CheckoutScreen = ({ navigation, route }) => {
                     )}
                 </TouchableOpacity>
             </View>
+
+            <Modal
+                visible={showKycModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowKycModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+
+                        <View style={styles.modalIcon}>
+                            <MaterialIcons
+                                name="hourglass-top"
+                                size={40}
+                                color="#F68B1E"
+                            />
+                        </View>
+
+                        <Text style={styles.modalTitle}>
+                            KYC Approval Pending
+                        </Text>
+
+                        <Text style={styles.modalMessage}>
+                            {kycMessage}
+                        </Text>
+
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setShowKycModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>
+                                OK
+                            </Text>
+                        </TouchableOpacity>
+
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -946,6 +1016,62 @@ const styles = StyleSheet.create({
     },
     btnIcon: {
         marginTop: 2,
+    },
+
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+
+    modalContainer: {
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'center',
+    },
+
+    modalIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#FFF7ED',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+
+    modalMessage: {
+        fontSize: 15,
+        color: '#64748B',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 24,
+    },
+
+    modalButton: {
+        backgroundColor: '#3E9400',
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+
+    modalButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });
 

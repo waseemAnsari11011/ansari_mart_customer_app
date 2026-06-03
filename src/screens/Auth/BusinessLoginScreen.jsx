@@ -26,7 +26,16 @@ const BusinessLoginScreen = ({ navigation }) => {
         }
         setLoading(true);
         try {
-            const { data } = await api.post('/users/send-otp', { phone });
+            const { data } = await api.post('/users/send-otp', { phone, type: 'Business' });
+            if (data.token) {
+                if (data.isNewUser) {
+                    setTempAuthData(data);
+                    setShowBusinessModal(true);
+                } else {
+                    await completeLogin(data.user, data.token);
+                }
+                return;
+            }
             setOtpSent(true);
             Alert.alert('Success', data.message);
         } catch (error) {
@@ -39,8 +48,8 @@ const BusinessLoginScreen = ({ navigation }) => {
     const handleVerify = async () => {
         const otpString = otp.join('');
         if (otpString.length !== 4) {
-             Alert.alert("Invalid Input", "Please enter the 4-digit OTP");
-             return;
+            Alert.alert("Invalid Input", "Please enter the 4-digit OTP");
+            return;
         }
         setLoading(true);
         try {
@@ -139,50 +148,50 @@ const BusinessLoginScreen = ({ navigation }) => {
                                         ref={(ref) => (otpRefs.current[index] = ref)}
                                         style={styles.otpInput}
                                         value={digit}
-                                        onChangeText={(text) => {
-                                            // 1. Handle Auto-fill/Paste (Multi-character input)
-                                            if (text.length > 1) {
-                                                const rawOtp = text.replace(/[^0-9]/g, '').slice(0, 4);
-                                                const otpArray = rawOtp.split('');
-                                                const paddedOtp = [...otpArray, ...Array(4 - otpArray.length).fill('')];
-                                                
-                                                setOtp(paddedOtp);
-                                                
-                                                // Focus the last filled box or the next empty one
-                                                const nextFocusRef = otpRefs.current[Math.min(otpArray.length, 3)];
-                                                if (nextFocusRef) nextFocusRef.focus();
-                                                return;
-                                            }
 
-                                            // 2. Handle Single Character Input
-                                            if (text) {
-                                                setOtp(prevOtp => {
-                                                    const newOtp = [...prevOtp];
-                                                    newOtp[index] = text.slice(-1); // Ensure only 1 char
-                                                    return newOtp;
-                                                });
-                                                
-                                                // Auto focus next
-                                                if (index < 3) {
-                                                    otpRefs.current[index + 1].focus();
+                                        keyboardType="number-pad"
+                                        maxLength={1}
+                                        textAlign="center"
+                                        textContentType="oneTimeCode"
+                                        autoComplete="sms-otp"
+
+                                        onFocus={() => {
+                                            otpRefs.current[index] = otpRefs.current[index];
+                                        }}
+
+                                        onChangeText={(text) => {
+                                            const newOtp = [...otp];
+                                            newOtp[index] = text.slice(-1);
+                                            setOtp(newOtp);
+
+                                            if (text && index < 3) {
+                                                setTimeout(() => {
+                                                    otpRefs.current[index + 1]?.focus();
+                                                }, 50);
+                                            }
+                                        }}
+
+                                        onKeyPress={({ nativeEvent }) => {
+                                            if (nativeEvent.key === 'Backspace') {
+
+                                                if (otp[index] !== '') {
+                                                    // current box clear
+                                                    const newOtp = [...otp];
+                                                    newOtp[index] = '';
+                                                    setOtp(newOtp);
+                                                }
+                                                else if (index > 0) {
+                                                    // move back + clear previous
+                                                    const newOtp = [...otp];
+                                                    newOtp[index - 1] = '';
+                                                    setOtp(newOtp);
+
+                                                    setTimeout(() => {
+                                                        otpRefs.current[index - 1]?.focus();
+                                                    }, 0);
                                                 }
                                             }
                                         }}
-                                        onKeyPress={({ nativeEvent }) => {
-                                            if (nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-                                                setOtp(prevOtp => {
-                                                    const newOtp = [...prevOtp];
-                                                    newOtp[index - 1] = '';
-                                                    return newOtp;
-                                                });
-                                                otpRefs.current[index - 1].focus();
-                                            }
-                                        }}
-                                        keyboardType="number-pad"
-                                        maxLength={10} // Increased temporarily for auto-fill/paste
-                                        textAlign="center"
-                                        textContentType="oneTimeCode" // iOS
-                                        autoComplete="sms-otp" // Android
                                     />
                                 ))}
                             </View>

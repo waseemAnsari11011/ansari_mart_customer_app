@@ -1,6 +1,18 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Platform, Alert, Linking } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    Image,
+    Dimensions,
+    StatusBar,
+    Platform,
+    Alert,
+    Linking,
+} from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import BottomTab from '../../components/BottomTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +28,6 @@ const ProfileScreen = ({ navigation, route }) => {
     const dispatch = useDispatch();
     const user = useSelector(state => state.auth.user);
     const isWholesale = user?.type === 'Business';
-    const [isDarkMode, setIsDarkMode] = useState(false);
 
     // Fetch latest profile when screen is focused
     useFocusEffect(
@@ -32,105 +43,140 @@ const ProfileScreen = ({ navigation, route }) => {
                 }
             };
             fetchProfile();
-        }, [])
+        }, [dispatch]),
     );
 
     const handleLogout = async () => {
-        Alert.alert(
-            "Logout",
-            "Are you sure you want to logout?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Logout",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await AsyncStorage.removeItem('userToken');
-                            await AsyncStorage.removeItem('userInfo');
-                            dispatch(logout());
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'RoleSelection' }],
-                            });
-                        } catch (error) {
-                            console.error('Logout error:', error);
-                        }
+        Alert.alert('Logout', 'Are you sure you want to logout?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Logout',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await AsyncStorage.removeItem('userToken');
+                        await AsyncStorage.removeItem('userInfo');
+                        dispatch(logout());
+                        navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'RoleSelection' }],
+                        });
+                    } catch (error) {
+                        console.error('Logout error:', error);
                     }
-                }
-            ]
-        );
+                },
+            },
+        ]);
     };
 
     const sections = [
         {
             title: isWholesale ? 'Business & Shopping' : 'Shopping',
             items: [
-                { title: 'My Orders', icon: 'inventory', color: '#3B82F6', bg: '#EFF6FF', route: 'OrderHistory' },
-                { title: 'Wishlist', icon: 'favorite', color: '#F43F5E', bg: '#FFF1F2', route: '#' },
-                { title: 'Saved Addresses', icon: 'location-on', color: '#F59E0B', bg: '#FFFBEB', route: 'ManageAddress' },
-                ...(isWholesale ? [{
-                    title: 'Business KYC',
-                    icon: 'business-center',
-                    color: '#10B981',
-                    bg: '#ECFDF5',
-                    route: 'BusinessKYC',
-                    badge: user?.businessDetails?.verificationStatus || 'Pending'
-                }] : []),
-            ]
-        }
+                {
+                    title: 'My Orders',
+                    icon: 'inventory',
+                    color: '#3B82F6',
+                    bg: '#EFF6FF',
+                    route: 'OrderHistory',
+                },
+                {
+                    title: 'Wishlist',
+                    icon: 'favorite',
+                    color: '#F43F5E',
+                    bg: '#FFF1F2',
+                    route: '#',
+                },
+                {
+                    title: 'Saved Addresses',
+                    icon: 'location-on',
+                    color: '#F59E0B',
+                    bg: '#FFFBEB',
+                    route: 'ManageAddress',
+                },
+                {
+                    title: 'Policies',
+                    icon: 'policy',
+                    color: '#8B5CF6',
+                    bg: '#F3E8FF',
+                    route: 'Policies',
+                },
+                ...(isWholesale
+                    ? [
+                        {
+                            title: 'Business KYC',
+                            icon: 'business-center',
+                            color: '#10B981',
+                            bg: '#ECFDF5',
+                            route: 'BusinessKYC',
+                            badge: user?.businessDetails?.verificationStatus || 'Pending',
+                        },
+                    ]
+                    : []),
+            ],
+        },
     ];
 
     return (
-        <View style={[styles.container, isDarkMode && styles.darkContainer]}>
-            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={isDarkMode ? "#0F172A" : "#f8f9fa"} />
+        <View style={styles.container}>
+            <StatusBar barStyle={'dark-content'} backgroundColor={'#f8f9fa'} />
 
             {/* Header */}
-            <View style={[styles.header, isDarkMode && styles.darkHeader, { paddingTop: Math.max(insets.top, 16) }]}>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
                 <View style={styles.headerLeft}>
                     <TouchableOpacity
-                        style={[styles.headerBtn, isDarkMode && styles.darkBtn]}
+                        style={styles.headerBtn}
                         onPress={() => navigation.goBack()}
                     >
-                        <MaterialIcons name="arrow-back-ios" size={18} color={isDarkMode ? "#F1F5F9" : "#111"} style={{ marginLeft: 6 }} />
+                        <MaterialIcons
+                            name="arrow-back-ios"
+                            size={18}
+                            color={'#111'}
+                            style={{ marginLeft: 6 }}
+                        />
                     </TouchableOpacity>
-                    <Text style={[styles.headerTitle, isDarkMode && styles.darkText]}>Business Profile</Text>
+                    <Text style={styles.headerTitle}>Business Profile</Text>
                 </View>
                 {/* Theme toggle removed */}
             </View>
 
-            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: 100 + insets.bottom },
+                ]}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Profile Card */}
                 <TouchableOpacity
-                    style={[styles.profileCard, isDarkMode && styles.darkCard]}
+                    style={styles.profileCard}
                     onPress={() => navigation.navigate('EditProfile')}
                     activeOpacity={0.7}
                 >
                     {/* Logout Button inside Profile Card */}
-                    <TouchableOpacity 
-                        style={styles.cardLogoutBtn} 
-                        onPress={handleLogout}
-                    >
+                    <TouchableOpacity style={styles.cardLogoutBtn} onPress={handleLogout}>
                         <MaterialIcons name="logout" size={20} color="#F43F5E" />
                     </TouchableOpacity>
 
                     <View style={styles.avatarWrapper}>
-                        <View style={[styles.avatarContainer, isDarkMode && styles.darkAvatar]}>
+                        <View style={styles.avatarContainer}>
                             <Image
-                                source={{ uri: resolveImageUrl(user?.profilePhoto) || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=2E7D32&color=fff&size=120` }}
+                                source={{
+                                    uri:
+                                        resolveImageUrl(user?.profilePhoto) ||
+                                        `https://ui-avatars.com/api/?name=${user?.name || 'User'
+                                        }&background=2E7D32&color=fff&size=120`,
+                                }}
                                 style={styles.avatar}
                             />
                         </View>
-                        <TouchableOpacity
-                            style={styles.cameraBtn}
-                            onPress={() => { }}
-                        >
+                        <TouchableOpacity style={styles.cameraBtn} onPress={() => { }}>
                             <MaterialIcons name="camera-alt" size={16} color="#fff" />
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.userNameRow}>
-                        <Text style={[styles.userName, isDarkMode && styles.darkText]}>
+                        <Text style={styles.userName}>
                             {user?.name || (isWholesale ? 'Business User' : 'Customer')}
                         </Text>
                     </View>
@@ -138,7 +184,9 @@ const ProfileScreen = ({ navigation, route }) => {
                     <View style={styles.contactInfo}>
                         <View style={styles.infoRow}>
                             <MaterialIcons name="call" size={16} color="#94A3B8" />
-                            <Text style={styles.infoText}>{user?.phone || 'No phone number'}</Text>
+                            <Text style={styles.infoText}>
+                                {user?.phone || 'No phone number'}
+                            </Text>
                         </View>
                     </View>
                 </TouchableOpacity>
@@ -147,70 +195,90 @@ const ProfileScreen = ({ navigation, route }) => {
                 {sections.map((section, sIndex) => (
                     <View key={sIndex} style={styles.section}>
                         <Text style={styles.sectionLabel}>{section.title}</Text>
-                        <View style={[styles.menuList, isDarkMode && styles.darkCard]}>
+                        <View style={styles.menuList}>
                             {section.items.map((item, iIndex) => (
                                 <TouchableOpacity
                                     key={iIndex}
                                     style={[
                                         styles.menuItem,
-                                        iIndex !== section.items.length - 1 && styles.menuItemBorder,
-                                        isDarkMode && styles.darkBorder
+                                        iIndex !== section.items.length - 1 &&
+                                        styles.menuItemBorder,
                                     ]}
-                                    onPress={() => item.route !== '#' && navigation.navigate(item.route)}
+                                    onPress={() =>
+                                        item.route !== '#' && navigation.navigate(item.route)
+                                    }
                                 >
-                                    <View style={[styles.iconBox, { backgroundColor: isDarkMode ? `${item.color}20` : item.bg }]}>
-                                        <MaterialIcons name={item.icon || 'star'} size={22} color={item.color} />
+                                    <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
+                                        <MaterialIcons
+                                            name={item.icon || 'star'}
+                                            size={22}
+                                            color={item.color}
+                                        />
                                     </View>
                                     <View style={styles.menuContent}>
-                                        <Text style={[styles.menuTitle, isDarkMode && styles.darkText]}>{item.title}</Text>
+                                        <Text style={styles.menuTitle}>{item.title}</Text>
                                         {item.badge && (
-                                            <View style={[
-                                                styles.badge,
-                                                item.badge === 'Approved' && styles.successBadge,
-                                                item.badge === 'Rejected' && styles.errorBadge
-                                            ]}>
-                                                <Text style={[
-                                                    styles.badgeText,
-                                                    item.badge === 'Approved' && styles.successBadgeText,
-                                                    item.badge === 'Rejected' && styles.errorBadgeText
-                                                ]}>{item.badge}</Text>
+                                            <View
+                                                style={[
+                                                    styles.badge,
+                                                    item.badge === 'Approved' && styles.successBadge,
+                                                    item.badge === 'Rejected' && styles.errorBadge,
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.badgeText,
+                                                        item.badge === 'Approved' &&
+                                                        styles.successBadgeText,
+                                                        item.badge === 'Rejected' && styles.errorBadgeText,
+                                                    ]}
+                                                >
+                                                    {item.badge}
+                                                </Text>
                                             </View>
                                         )}
                                     </View>
-                                    <MaterialIcons name="chevron-right" size={20} color="#CBD5E1" />
+                                    <MaterialIcons
+                                        name="chevron-right"
+                                        size={20}
+                                        color="#CBD5E1"
+                                    />
                                 </TouchableOpacity>
                             ))}
                         </View>
                     </View>
                 ))}
 
-
                 {/* Developer Credit (Inside Scroll) */}
-                <TouchableOpacity 
-                    style={[styles.developerCard, isDarkMode && styles.darkCard]}
+                <TouchableOpacity
+                    style={styles.developerCard}
                     onPress={() => Linking.openURL('https://ecarts.agency/')}
                     activeOpacity={0.7}
                 >
                     <View style={styles.developerContent}>
-                        <Text style={[styles.developerText, isDarkMode && styles.darkText]}>
+                        <Text style={styles.developerText}>
                             Developed by <Text style={styles.developerBrand}>ecarts</Text>
                         </Text>
-                        <MaterialIcons name="open-in-new" size={18} color={isDarkMode ? "#94A3B8" : "#64748B"} style={{ marginLeft: 8 }} />
+                        <MaterialIcons
+                            name="open-in-new"
+                            size={18}
+                            color={'#64748B'}
+                            style={{ marginLeft: 8 }}
+                        />
                     </View>
                 </TouchableOpacity>
             </ScrollView>
 
-
             {/* Floating Help & Support Button */}
-            <TouchableOpacity 
-                style={[styles.floatingHelpBtn, { bottom: insets.bottom + 120 }]} 
+            <TouchableOpacity
+                style={[styles.floatingHelpBtn, { bottom: insets.bottom + 120 }]}
                 onPress={() => navigation.navigate('HelpSupport')}
             >
                 <MaterialIcons name="support-agent" size={28} color="#fff" />
             </TouchableOpacity>
 
             {/* Bottom Nav */}
-            <BottomTab activeTab="Profile" isWholesale={isWholesale} isDarkMode={isDarkMode} />
+            <BottomTab activeTab="Profile" isWholesale={isWholesale} />
         </View>
     );
 };
@@ -220,9 +288,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f8f9fa',
     },
-    darkContainer: {
-        backgroundColor: '#0F172A',
-    },
+
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -231,9 +297,7 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
         backgroundColor: 'rgba(248, 249, 250, 0.8)',
     },
-    darkHeader: {
-        backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    },
+
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -258,17 +322,13 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    darkBtn: {
-        backgroundColor: '#1E293B',
-    },
+
     headerTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         color: '#0F172A',
     },
-    darkText: {
-        color: '#F1F5F9',
-    },
+
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 10,
@@ -291,11 +351,7 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    darkCard: {
-        backgroundColor: '#1E293B',
-        borderWidth: 1,
-        borderColor: 'rgba(51, 65, 85, 0.5)',
-    },
+
     avatarWrapper: {
         position: 'relative',
         marginBottom: 16,
@@ -307,9 +363,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F1F5F9',
         padding: 4,
     },
-    darkAvatar: {
-        backgroundColor: '#334155',
-    },
+
     avatar: {
         width: '100%',
         height: '100%',
@@ -371,9 +425,7 @@ const styles = StyleSheet.create({
         padding: 6,
         borderRadius: 12,
     },
-    darkEdit: {
-        backgroundColor: 'rgba(51, 65, 85, 0.5)',
-    },
+
     contactInfo: {
         gap: 8,
     },
@@ -426,9 +478,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#F8FAFC',
     },
-    darkBorder: {
-        borderBottomColor: 'rgba(51, 65, 85, 0.4)',
-    },
+
     iconBox: {
         width: 44,
         height: 44,
@@ -503,10 +553,7 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    darkLogoutBtn: {
-        backgroundColor: '#1E293B',
-        borderColor: 'rgba(244, 63, 94, 0.2)',
-    },
+
     logoutText: {
         color: '#F43F5E',
         fontWeight: 'bold',

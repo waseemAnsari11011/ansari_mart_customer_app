@@ -20,13 +20,22 @@ const CustomerLoginScreen = ({ navigation }) => {
     const otpRefs = useRef([]);
 
     const handleSendOtp = async () => {
-        if(phoneNumber.length !== 10) {
+        if (phoneNumber.length !== 10) {
             Alert.alert("Invalid Input", "Please enter a valid 10-digit phone number");
             return;
         }
         setLoading(true);
         try {
-            const { data } = await api.post('/users/send-otp', { phone: phoneNumber });
+            const { data } = await api.post('/users/send-otp', { phone: phoneNumber, type: 'Retail' });
+            if (data.token) {
+                if (data.isNewUser) {
+                    setTempAuthData(data);
+                    setShowNameModal(true);
+                } else {
+                    await completeLogin(data.user, data.token);
+                }
+                return;
+            }
             setOtpSent(true);
             // The message from server is now "OTP sent successfully to your phone number."
             Alert.alert('Success', data.message);
@@ -39,14 +48,14 @@ const CustomerLoginScreen = ({ navigation }) => {
 
     const handleVerify = async () => {
         const otpString = otp.join('');
-        if(otpString.length !== 4) {
-             Alert.alert("Invalid Input", "Please enter the 4-digit OTP");
-             return;
+        if (otpString.length !== 4) {
+            Alert.alert("Invalid Input", "Please enter the 4-digit OTP");
+            return;
         }
         setLoading(true);
         try {
             const { data } = await api.post('/users/verify-otp', { phone: phoneNumber, otp: otpString });
-            
+
             if (data.isNewUser) {
                 setTempAuthData(data);
                 setShowNameModal(true);
@@ -68,7 +77,7 @@ const CustomerLoginScreen = ({ navigation }) => {
         setLoading(true);
         try {
             // Pass token explicitly to ensure it's not overwritten by interceptors
-            const { data } = await api.patch('/users/update-profile', 
+            const { data } = await api.patch('/users/update-profile',
                 { name: name.trim() },
                 { headers: { Authorization: `Bearer ${tempAuthData.token}` } }
             );
@@ -145,50 +154,50 @@ const CustomerLoginScreen = ({ navigation }) => {
                                         ref={(ref) => (otpRefs.current[index] = ref)}
                                         style={styles.otpInput}
                                         value={digit}
-                                        onChangeText={(text) => {
-                                            // 1. Handle Auto-fill/Paste (Multi-character input)
-                                            if (text.length > 1) {
-                                                const rawOtp = text.replace(/[^0-9]/g, '').slice(0, 4);
-                                                const otpArray = rawOtp.split('');
-                                                const paddedOtp = [...otpArray, ...Array(4 - otpArray.length).fill('')];
-                                                
-                                                setOtp(paddedOtp);
-                                                
-                                                // Focus the last filled box or the next empty one
-                                                const nextFocusRef = otpRefs.current[Math.min(otpArray.length, 3)];
-                                                if (nextFocusRef) nextFocusRef.focus();
-                                                return;
-                                            }
 
-                                            // 2. Handle Single Character Input
-                                            if (text) {
-                                                setOtp(prevOtp => {
-                                                    const newOtp = [...prevOtp];
-                                                    newOtp[index] = text.slice(-1); // Ensure only 1 char
-                                                    return newOtp;
-                                                });
-                                                
-                                                // Auto focus next
-                                                if (index < 3) {
-                                                    otpRefs.current[index + 1].focus();
+                                        keyboardType="number-pad"
+                                        maxLength={1}
+                                        textAlign="center"
+                                        textContentType="oneTimeCode"
+                                        autoComplete="sms-otp"
+
+                                        onFocus={() => {
+                                            otpRefs.current[index] = otpRefs.current[index];
+                                        }}
+
+                                        onChangeText={(text) => {
+                                            const newOtp = [...otp];
+                                            newOtp[index] = text.slice(-1);
+                                            setOtp(newOtp);
+
+                                            if (text && index < 3) {
+                                                setTimeout(() => {
+                                                    otpRefs.current[index + 1]?.focus();
+                                                }, 50);
+                                            }
+                                        }}
+
+                                        onKeyPress={({ nativeEvent }) => {
+                                            if (nativeEvent.key === 'Backspace') {
+
+                                                if (otp[index] !== '') {
+                                                    // current box clear
+                                                    const newOtp = [...otp];
+                                                    newOtp[index] = '';
+                                                    setOtp(newOtp);
+                                                }
+                                                else if (index > 0) {
+                                                    // move back + clear previous
+                                                    const newOtp = [...otp];
+                                                    newOtp[index - 1] = '';
+                                                    setOtp(newOtp);
+
+                                                    setTimeout(() => {
+                                                        otpRefs.current[index - 1]?.focus();
+                                                    }, 0);
                                                 }
                                             }
                                         }}
-                                        onKeyPress={({ nativeEvent }) => {
-                                            if (nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-                                                setOtp(prevOtp => {
-                                                    const newOtp = [...prevOtp];
-                                                    newOtp[index - 1] = '';
-                                                    return newOtp;
-                                                });
-                                                otpRefs.current[index - 1].focus();
-                                            }
-                                        }}
-                                        keyboardType="number-pad"
-                                        maxLength={10} // Increased temporarily for auto-fill/paste
-                                        textAlign="center"
-                                        textContentType="oneTimeCode" // iOS
-                                        autoComplete="sms-otp" // Android
                                     />
                                 ))}
                             </View>
@@ -232,7 +241,7 @@ const CustomerLoginScreen = ({ navigation }) => {
                         <View style={styles.modalContent}>
                             <Text style={styles.modalTitle}>Welcome to AnsariMart!</Text>
                             <Text style={styles.modalSubtitle}>Please enter your name to continue</Text>
-                            
+
                             <View style={styles.modalInputGroup}>
                                 <Text style={styles.label}>FULL NAME</Text>
                                 <TextInput
@@ -244,8 +253,8 @@ const CustomerLoginScreen = ({ navigation }) => {
                                 />
                             </View>
 
-                            <TouchableOpacity 
-                                style={[styles.button, { marginTop: 24 }]} 
+                            <TouchableOpacity
+                                style={[styles.button, { marginTop: 24 }]}
                                 onPress={handleSaveName}
                                 disabled={loading}
                             >

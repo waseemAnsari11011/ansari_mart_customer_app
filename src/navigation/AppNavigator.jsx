@@ -26,6 +26,14 @@ import OrderTrackingScreen from '../screens/Order/OrderTrackingScreen';
 import CheckoutScreen from '../screens/Order/CheckoutScreen';
 import OrderSuccessScreen from '../screens/Order/OrderSuccessScreen';
 import EditProfileScreen from '../screens/Profile/EditProfileScreen';
+import PoliciesScreen from '../screens/Policy/PoliciesScreen';
+import PrivacyPolicyScreen from '../screens/Policy/PrivacyPolicyScreen';
+// import TermsConditionsScreen from '../screens/Policy/TermsConditionsScreen';
+// import RefundPolicyScreen from '../screens/Policy/RefundPolicyScreen';
+// import CancellationPolicyScreen from '../screens/Policy/CancellationPolicyScreen';
+// import ShippingPolicyScreen from '../screens/Policy/ShippingPolicyScreen';
+// import ReturnExchangePolicyScreen from '../screens/Policy/ReturnExchangePolicyScreen';
+// import BusinessPolicyScreen from '../screens/Policy/BusinessPolicyScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +74,14 @@ const AppNavigator = () => {
                 <Stack.Screen name="Checkout" component={CheckoutScreen} />
                 <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
                 <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                <Stack.Screen name="Policies" component={PoliciesScreen} />
+                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                {/* <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
+                <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+                <Stack.Screen name="CancellationPolicy" component={CancellationPolicyScreen} />
+                <Stack.Screen name="ShippingPolicy" component={ShippingPolicyScreen} />
+                <Stack.Screen name="ReturnExchangePolicy" component={ReturnExchangePolicyScreen} />
+                <Stack.Screen name="BusinessPolicy" component={BusinessPolicyScreen} /> */}
             </Stack.Navigator>
         </NavigationContainer>
     );
