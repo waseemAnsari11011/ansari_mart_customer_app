@@ -1,15 +1,39 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import VersionCheck from 'react-native-version-check';
+import ForceUpdateModal from './ForceUpdateModal';
+import { View, Text, StyleSheet, Animated, Image, ActivityIndicator, BackHandler, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../redux/slices/authSlice';
 import { setCategories, setProducts, setBanners } from '../../redux/slices/productSlice';
 import { setOrders as setReduxOrders } from '../../redux/slices/orderSlice';
 import api from '../../utils/api';
+import { registerFCMToken } from '../../services/notificationService';
 
 const SplashScreen = ({ navigation }) => {
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const dispatch = useDispatch();
+
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [storeUrl, setStoreUrl] = useState('');
+
+  const checkForUpdate = async () => {
+    try {
+      const update = await VersionCheck.needUpdate();
+
+      if (update?.isNeeded) {
+        setStoreUrl(update.storeUrl);
+        setShowUpdateModal(true);
+
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.log('Version check failed:', error);
+      return true;
+    }
+  };
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -17,6 +41,13 @@ const SplashScreen = ({ navigation }) => {
       duration: 1000,
       useNativeDriver: true,
     }).start(async () => {
+
+      const canContinue = await checkForUpdate();
+
+      if (!canContinue) {
+        return;
+      }
+
       try {
         const userInfoStr = await AsyncStorage.getItem('userInfo');
         const token = await AsyncStorage.getItem('userToken');
@@ -24,42 +55,48 @@ const SplashScreen = ({ navigation }) => {
         const userType = userInfo ? (userInfo.type === 'Business' ? 'business' : 'retail') : null;
 
         setTimeout(async () => {
-        // Fetch Fresh Data
-        try {
-          const productsUrl = userType ? `/products?userType=${userType}&limit=50` : '/products?limit=50';
-          const [catRes, prodRes, settingsRes] = await Promise.all([
-            api.get('/categories'),
-            api.get(productsUrl),
-            api.get('/settings')
-          ]);
-          dispatch(setCategories(catRes.data));
-          dispatch(setProducts(prodRes.data));
-          
-          const activeBanners = settingsRes.data?.banners?.filter(b => b.status === 'ACTIVE') || [];
-          dispatch(setBanners(activeBanners));
-        } catch (fetchError) {
-          console.error('Error fetching initial data:', fetchError);
-        }
-
-        if (userInfo && token) {
-          dispatch(setCredentials({ user: userInfo, token }));
-          
-          // Pre-fetch orders for logged-in users
+          // Fetch Fresh Data
           try {
-            const orderRes = await api.get('/orders/myorders');
-            dispatch(setReduxOrders(orderRes.data));
-          } catch (orderError) {
-            console.warn('Orders pre-fetch failed:', orderError);
+            const productsUrl = userType ? `/products?userType=${userType}&limit=50` : '/products?limit=50';
+            const [catRes, prodRes, settingsRes] = await Promise.all([
+              api.get('/categories'),
+              api.get(productsUrl),
+              api.get('/settings')
+            ]);
+            dispatch(setCategories(catRes.data));
+            dispatch(setProducts(prodRes.data));
+
+            const activeBanners = settingsRes.data?.banners?.filter(b => b.status === 'ACTIVE') || [];
+            dispatch(setBanners(activeBanners));
+          } catch (fetchError) {
+            console.error('Error fetching initial data:', fetchError);
           }
-          
-          if (userInfo.type === 'Business') {
-            navigation.replace('BusinessHome');
+
+          if (userInfo && token) {
+            dispatch(setCredentials({ user: userInfo, token }));
+
+            try {
+              await registerFCMToken();
+            } catch (error) {
+              console.log('FCM registration failed:', error);
+            }
+
+            // Pre-fetch orders for logged-in users
+            try {
+              const orderRes = await api.get('/orders/myorders');
+              dispatch(setReduxOrders(orderRes.data));
+            } catch (orderError) {
+              console.warn('Orders pre-fetch failed:', orderError);
+            }
+
+            if (userInfo.type === 'Business') {
+              navigation.replace('BusinessHome');
+            } else {
+              navigation.replace('RetailHome');
+            }
           } else {
-            navigation.replace('RetailHome');
+            navigation.replace('RoleSelection');
           }
-        } else {
-          navigation.replace('RoleSelection');
-        }
         }, 1000); // Give user enough time to see splash
       } catch (error) {
         console.error('Error checking auto-login', error);
@@ -88,6 +125,12 @@ const SplashScreen = ({ navigation }) => {
           style={styles.loader}
         />
       </Animated.View>
+
+      <ForceUpdateModal
+        visible={showUpdateModal}
+        onUpdate={() => Linking.openURL(storeUrl)}
+        onExit={() => BackHandler.exitApp()}
+      />
     </View>
   );
 };

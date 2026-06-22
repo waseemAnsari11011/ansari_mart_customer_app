@@ -18,6 +18,7 @@ const CheckoutScreen = ({ navigation, route }) => {
     const [upiMethod, setUpiMethod] = useState('PhonePe');
     const [upiId, setUpiId] = useState('');
     const [loading, setLoading] = useState(false);
+    const [logisticsSettings, setLogisticsSettings] = useState(null);
 
     // Redux State
     const { cartItems } = useSelector((state) => state.cart);
@@ -32,6 +33,12 @@ const CheckoutScreen = ({ navigation, route }) => {
 
     useEffect(() => {
         dispatch(fetchAddresses());
+        // Fetch logistics settings from backend
+        api.get('/settings').then(res => {
+            if (res.data?.logistics) {
+                setLogisticsSettings(res.data.logistics);
+            }
+        }).catch(err => console.log('[CHECKOUT] Failed to fetch logistics settings:', err));
     }, [dispatch]);
 
     // Calculate Totals
@@ -42,12 +49,12 @@ const CheckoutScreen = ({ navigation, route }) => {
 
     let deliveryFee = 0;
 
-    if (user?.type === 'Retail') {
-        deliveryFee = subtotal < 500 ? 30 : 0;
-    }
-
-    if (user?.type === 'Business') {
-        deliveryFee = subtotal < 4000 ? 50 : 0;
+    const userType = user?.type; // 'Retail' or 'Business' — same as DB
+    const rule = logisticsSettings?.[userType];
+    if (rule?.mov != null && rule?.deliveryCharge != null) {
+        if (subtotal < rule.mov) {
+            deliveryFee = rule.deliveryCharge;
+        }
     }
 
     const orderTotal = subtotal + deliveryFee;
@@ -361,19 +368,94 @@ const CheckoutScreen = ({ navigation, route }) => {
                             <Text style={styles.summaryItemLabel}>Items Total ({cartItems.filter(i => i.product).length})</Text>
                             <Text style={styles.summaryItemValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
                         </View>
-                        <View style={styles.summaryItemRow}>
-                            <Text style={styles.summaryItemLabel}>Delivery Charges</Text>
-                            <Text
-                                style={[
+                        <View style={{ marginBottom: 12 }}>
+
+                            {/* Row */}
+                            <View style={styles.summaryItemRow}>
+                                <Text style={styles.summaryItemLabel}>Delivery Charges</Text>
+                                <Text style={[
                                     styles.summaryItemValue,
                                     {
                                         color: deliveryFee === 0 ? '#3E9400' : '#F97316',
                                         fontWeight: 'bold'
                                     }
-                                ]}
-                            >
-                                {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
-                            </Text>
+                                ]}>
+                                    {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                                </Text>
+                            </View>
+
+                            {/* 🔥 BREAKDOWN MESSAGE */}
+                            <View style={{ marginTop: 8 }}>
+
+                                {/* Heading */}
+                                <Text style={{
+                                    fontSize: 13,
+                                    fontWeight: '700',
+                                    color: '#111827',
+                                    marginBottom: 8
+                                }}>
+                                    Delivery Rules
+                                </Text>
+
+                                {/* Card */}
+                                <View style={{
+                                    backgroundColor: '#F8FAFC',
+                                    borderWidth: 1,
+                                    borderColor: '#E2E8F0',
+                                    borderRadius: 10,
+                                    padding: 12
+                                }}>
+
+                                    {/* Rule 1 */}
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        marginBottom: 8
+                                    }}>
+                                        <Text style={{
+                                            fontSize: 14,
+                                            color: '#F97316',
+                                            marginRight: 6
+                                        }}>
+                                            •
+                                        </Text>
+                                        <Text style={{
+                                            fontSize: 13,
+                                            color: '#111827',
+                                            flex: 1,
+                                            lineHeight: 18
+                                        }}>
+                                            <Text style={{ fontWeight: '600' }}>
+                                                ₹{rule?.deliveryCharge} charge:
+                                            </Text> applies if order is below ₹{rule?.mov}
+                                        </Text>
+                                    </View>
+
+                                    {/* Rule 2 */}
+                                    <View style={{
+                                        flexDirection: 'row'
+                                    }}>
+                                        <Text style={{
+                                            fontSize: 14,
+                                            color: '#3E9400',
+                                            marginRight: 6
+                                        }}>
+                                            •
+                                        </Text>
+                                        <Text style={{
+                                            fontSize: 13,
+                                            color: '#111827',
+                                            flex: 1,
+                                            lineHeight: 18
+                                        }}>
+                                            <Text style={{ fontWeight: '600' }}>
+                                                FREE delivery:
+                                            </Text> on orders ₹{rule?.mov} and above
+                                        </Text>
+                                    </View>
+
+                                </View>
+                            </View>
+
                         </View>
                         <View style={styles.finalTotalRow}>
                             <Text style={styles.finalTotalLabel}>Total Amount</Text>

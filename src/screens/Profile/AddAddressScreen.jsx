@@ -21,6 +21,7 @@ import { addAddressAsync } from '../../redux/slices/addressSlice';
 import { reverseGeocode } from '../../utils/location';
 import Geolocation from 'react-native-geolocation-service';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import AddressSearch from './AddressSearch';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +32,9 @@ const AddAddressScreen = ({ navigation }) => {
   const [selectedLabel, setSelectedLabel] = useState('home');
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [addressSelected, setAddressSelected] = useState(false);
+  console.log('addressSelected =', addressSelected);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -97,9 +101,9 @@ const AddAddressScreen = ({ navigation }) => {
 
         const isGranted =
           granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
-            PermissionsAndroid.RESULTS.GRANTED ||
+          PermissionsAndroid.RESULTS.GRANTED ||
           granted[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
-            PermissionsAndroid.RESULTS.GRANTED;
+          PermissionsAndroid.RESULTS.GRANTED;
 
         if (!isGranted) {
           setLoadingLocation(false);
@@ -131,6 +135,10 @@ const AddAddressScreen = ({ navigation }) => {
                 latitude: latitude,
                 longitude: longitude,
               });
+              setAddressSelected(true);
+
+              console.log('setAddressSelected called');
+
               Alert.alert('Success', 'Location fetched successfully!');
             }
           } catch (err) {
@@ -164,6 +172,11 @@ const AddAddressScreen = ({ navigation }) => {
                   latitude: latitude,
                   longitude: longitude,
                 });
+                setAddressSelected(true);
+
+                console.log('setAddressSelected called');
+
+                Alert.alert('Success', 'Location fetched successfully!');
               }
               setLoadingLocation(false);
               setLocationStatus('');
@@ -241,6 +254,22 @@ const AddAddressScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
+        <AddressSearch
+          onAddressSelect={location => {
+            setFormData(prev => ({
+              ...prev,
+              roadName: location.address,
+              city: location.city,
+              state: location.state,
+              pincode: location.pincode,
+              latitude: location.latitude,
+              longitude: location.longitude,
+            }));
+
+            setAddressSelected(true);
+          }}
+        />
+
         {loadingLocation && locationStatus && (
           <Text
             style={{
@@ -256,126 +285,127 @@ const AddAddressScreen = ({ navigation }) => {
           </Text>
         )}
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Address Label</Text>
-          <View style={styles.radioGroup}>
-            {['business', 'warehouse', 'home'].map(label => (
-              <TouchableOpacity
-                key={label}
-                style={[
-                  styles.radioButton,
-                  selectedLabel === label && styles.selectedRadio,
-                ]}
-                onPress={() => setSelectedLabel(label)}
-              >
-                <Text
+        {addressSelected && (
+          <View style={styles.form}>
+            <View style={styles.radioGroup}>
+              {['business', 'warehouse', 'home'].map(label => (
+                <TouchableOpacity
+                  key={label}
                   style={[
-                    styles.radioText,
-                    selectedLabel === label && styles.selectedRadioText,
+                    styles.radioButton,
+                    selectedLabel === label && styles.selectedRadio,
                   ]}
+                  onPress={() => setSelectedLabel(label)}
                 >
-                  {label.charAt(0).toUpperCase() + label.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <Text
+                    style={[
+                      styles.radioText,
+                      selectedLabel === label && styles.selectedRadioText,
+                    ]}
+                  >
+                    {label.charAt(0).toUpperCase() + label.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name of Contact Person</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Ahmed Ansari"
-              placeholderTextColor="#94A3B8"
-              value={formData.name}
-              onChangeText={val => setFormData({ ...formData, name: val })}
-            />
-          </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Full Name of Contact Person</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Ahmed Ansari"
+                placeholderTextColor="#94A3B8"
+                value={formData.name}
+                onChangeText={val => setFormData({ ...formData, name: val })}
+              />
+            </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Mobile Number</Text>
-            <View style={styles.phoneInputContainer}>
-              <View style={styles.prefix}>
-                <Text style={styles.prefixText}>+91</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Mobile Number</Text>
+              <View style={styles.phoneInputContainer}>
+                <View style={styles.prefix}>
+                  <Text style={styles.prefixText}>+91</Text>
+                </View>
+                <TextInput
+                  style={[styles.input, styles.phoneInput]}
+                  placeholder="98765 43210"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="numeric"
+                  value={formData.phone}
+                  onChangeText={val => setFormData({ ...formData, phone: val })}
+                />
               </View>
-              <TextInput
-                style={[styles.input, styles.phoneInput]}
-                placeholder="98765 43210"
-                placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
-                value={formData.phone}
-                onChangeText={val => setFormData({ ...formData, phone: val })}
-              />
             </View>
-          </View>
 
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
-              <Text style={styles.label}>Pin Code</Text>
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
+                <Text style={styles.label}>Pin Code</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="400001"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="numeric"
+                  value={formData.pincode}
+                  onChangeText={val => setFormData({ ...formData, pincode: val })}
+                />
+              </View>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>State</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="State"
+                  placeholderTextColor="#94A3B8"
+                  value={formData.state}
+                  onChangeText={val => setFormData({ ...formData, state: val })}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>City</Text>
               <TextInput
                 style={styles.input}
-                placeholder="400001"
+                placeholder="Mumbai"
                 placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
-                value={formData.pincode}
-                onChangeText={val => setFormData({ ...formData, pincode: val })}
+                value={formData.city}
+                onChangeText={val => setFormData({ ...formData, city: val })}
               />
             </View>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>State</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>House/Plot No. and Building Name</Text>
               <TextInput
                 style={styles.input}
-                placeholder="State"
+                placeholder="Plot No. 45, Galaxy Tower"
                 placeholderTextColor="#94A3B8"
-                value={formData.state}
-                onChangeText={val => setFormData({ ...formData, state: val })}
+                value={formData.houseNo}
+                onChangeText={val => setFormData({ ...formData, houseNo: val })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Road Name/Area/Colony</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Industrial Area Phase II"
+                placeholderTextColor="#94A3B8"
+                value={formData.roadName}
+                onChangeText={val => setFormData({ ...formData, roadName: val })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Landmark (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Near Metro Station"
+                placeholderTextColor="#94A3B8"
+                value={formData.landmark}
+                onChangeText={val => setFormData({ ...formData, landmark: val })}
               />
             </View>
           </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>City</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Mumbai"
-              placeholderTextColor="#94A3B8"
-              value={formData.city}
-              onChangeText={val => setFormData({ ...formData, city: val })}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>House/Plot No. and Building Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Plot No. 45, Galaxy Tower"
-              placeholderTextColor="#94A3B8"
-              value={formData.houseNo}
-              onChangeText={val => setFormData({ ...formData, houseNo: val })}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Road Name/Area/Colony</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Industrial Area Phase II"
-              placeholderTextColor="#94A3B8"
-              value={formData.roadName}
-              onChangeText={val => setFormData({ ...formData, roadName: val })}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Landmark (Optional)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Near Metro Station"
-              placeholderTextColor="#94A3B8"
-              value={formData.landmark}
-              onChangeText={val => setFormData({ ...formData, landmark: val })}
-            />
-          </View>
-        </View>
+        )}
       </ScrollView>
 
       {/* Bottom Button */}

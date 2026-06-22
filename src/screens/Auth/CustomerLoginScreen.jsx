@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../redux/slices/authSlice';
 import api from '../../utils/api';
+import { registerFCMToken } from '../../services/notificationService';
 
 const CustomerLoginScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -94,6 +95,11 @@ const CustomerLoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem('userToken', token);
         await AsyncStorage.setItem('userInfo', JSON.stringify(user));
         dispatch(setCredentials({ user, token }));
+        try {
+            await registerFCMToken();
+        } catch (fcmError) {
+            console.log('FCM token registration failed on login:', fcmError);
+        }
         navigation.replace('RetailHome');
     };
 

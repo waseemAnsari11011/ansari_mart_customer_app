@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "537521043176",
+    "project_id": "amart-8ac5f",
+    "storage_bucket": "amart-8ac5f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537521043176:android:0eb5846db11777089a7b5d",
+        "android_client_info": {
+          "package_name": "com.amart.ansari"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8T3jKMh8dIf-NJa04fZjnYpE_wyy2xWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

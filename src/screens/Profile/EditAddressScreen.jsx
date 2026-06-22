@@ -20,6 +20,7 @@ import { updateAddressAsync } from '../../redux/slices/addressSlice';
 import { reverseGeocode } from '../../utils/location';
 import Geolocation from 'react-native-geolocation-service';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import AddressSearch from './AddressSearch';
 
 const { width } = Dimensions.get('window');
 
@@ -103,9 +104,9 @@ const EditAddressScreen = ({ navigation, route }) => {
 
         const isGranted =
           granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
-            PermissionsAndroid.RESULTS.GRANTED ||
+          PermissionsAndroid.RESULTS.GRANTED ||
           granted[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
-            PermissionsAndroid.RESULTS.GRANTED;
+          PermissionsAndroid.RESULTS.GRANTED;
 
         if (!isGranted) {
           setLoadingLocation(false);
@@ -166,6 +167,7 @@ const EditAddressScreen = ({ navigation, route }) => {
                   latitude: latitude,
                   longitude: longitude,
                 });
+                Alert.alert('Success', 'Location fetched successfully!');
               }
               setLoadingLocation(false);
               setLocationStatus('');
@@ -242,8 +244,21 @@ const EditAddressScreen = ({ navigation, route }) => {
           </Text>
         </TouchableOpacity>
 
+        <AddressSearch
+          onAddressSelect={location => {
+            setFormData(prev => ({
+              ...prev,
+              roadName: location.address,
+              city: location.city,
+              state: location.state,
+              pincode: location.pincode,
+              latitude: location.latitude,
+              longitude: location.longitude,
+            }));
+          }}
+        />
+
         <View style={styles.form}>
-          <Text style={styles.label}>Address Label</Text>
           <View style={styles.radioGroup}>
             {['business', 'warehouse', 'home'].map(label => (
               <TouchableOpacity
