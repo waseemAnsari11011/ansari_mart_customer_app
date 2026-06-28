@@ -3,6 +3,11 @@ import { Alert } from 'react-native';
 import api from '../utils/api';
 import { navigate } from '../navigation/navigationRef';
 
+export let notificationProductId = null;
+export const clearNotificationProductId = () => {
+    notificationProductId = null;
+};
+
 const openProduct = async (productId) => {
     if (!productId) return;
 
@@ -11,6 +16,7 @@ const openProduct = async (productId) => {
 
         const product =
             response.data.product || response.data;
+        console.log("OPEN PRODUCT CALLED", productId);
 
         navigate('ProductDetails', {
             product,
@@ -36,15 +42,17 @@ export const setupNotificationHandlers = () => {
     // Killed State
     messaging()
         .getInitialNotification()
-        .then(async remoteMessage => {
+        .then(remoteMessage => {
 
-            if (!remoteMessage) return;
+            console.log(
+                "INITIAL NOTIFICATION",
+                JSON.stringify(remoteMessage, null, 2)
+            );
 
-            setTimeout(async () => {
-                await openProduct(
-                    remoteMessage?.data?.productId
-                );
-            }, 3000);
+            if (remoteMessage?.data?.productId) {
+                notificationProductId =
+                    remoteMessage.data.productId;
+            }
         });
 
     // Foreground

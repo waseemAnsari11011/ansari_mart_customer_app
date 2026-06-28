@@ -9,6 +9,7 @@ import { setCategories, setProducts, setBanners } from '../../redux/slices/produ
 import { setOrders as setReduxOrders } from '../../redux/slices/orderSlice';
 import api from '../../utils/api';
 import { registerFCMToken } from '../../services/notificationService';
+import { notificationProductId, clearNotificationProductId } from '../../services/notificationHandler';
 
 const SplashScreen = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -89,10 +90,43 @@ const SplashScreen = ({ navigation }) => {
               console.warn('Orders pre-fetch failed:', orderError);
             }
 
-            if (userInfo.type === 'Business') {
-              navigation.replace('BusinessHome');
-            } else {
-              navigation.replace('RetailHome');
+            const homeScreen =
+              userInfo.type === 'Business'
+                ? 'BusinessHome'
+                : 'RetailHome';
+
+            navigation.replace(homeScreen);
+
+            if (notificationProductId) {
+
+              setTimeout(async () => {
+
+                try {
+
+                  const response = await api.get(
+                    `/products/${notificationProductId}`
+                  );
+
+                  const product =
+                    response.data.product || response.data;
+
+                  navigation.navigate(
+                    'ProductDetails',
+                    {
+                      product,
+                      isWholesale: false,
+                    }
+                  );
+
+                  // 👇 YE ADD KARO
+                  clearNotificationProductId();
+
+                } catch (error) {
+                  console.log("PRODUCT FETCH ERROR", error);
+                }
+
+              }, 500);
+
             }
           } else {
             navigation.replace('RoleSelection');
