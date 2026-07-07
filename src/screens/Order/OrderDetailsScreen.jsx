@@ -7,6 +7,32 @@ import { ActivityIndicator } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
+const splitUnitFromName = (name = '') => {
+    const trimmedName = String(name || '').trim();
+    const unitMatch = trimmedName.match(/\s*\(([^()]+)\)\s*$/);
+
+    if (!unitMatch) {
+        return { name: trimmedName, unit: '' };
+    }
+
+    return {
+        name: trimmedName.slice(0, unitMatch.index).trim() || trimmedName,
+        unit: unitMatch[1].trim()
+    };
+};
+
+const getOrderItemDisplay = (item) => {
+    const parsedName = splitUnitFromName(item.name || item.product?.name || 'Product');
+    const unit = String(item.unit || parsedName.unit || '').trim();
+    const quantity = item.qty ?? item.quantity ?? 1;
+
+    return {
+        name: parsedName.name,
+        quantityLabel: unit ? `${quantity} ${unit}` : String(quantity),
+        unitLabel: unit || 'unit'
+    };
+};
+
 const OrderDetailsScreen = ({ navigation, route }) => {
     const insets = useSafeAreaInsets();
     const { orderId } = route.params || {};
@@ -95,22 +121,26 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <View style={styles.section}>
                     <Text style={styles.sectionLabel}>ITEMS ({order.orderItems?.length})</Text>
 
-                    {order.orderItems?.map((item, idx) => (
-                        <View key={idx} style={styles.itemCard}>
-                            <Image
-                                source={{ uri: resolveImageUrl(item.image) }}
-                                style={styles.itemImage}
-                            />
-                            <View style={styles.itemInfo}>
-                                <Text style={styles.itemName}>{item.name}</Text>
-                                <Text style={styles.itemVariant}>Quantity: {item.qty} units</Text>
-                                <View style={styles.itemPriceRow}>
-                                    <Text style={styles.itemPrice}>₹{item.price * item.qty}</Text>
-                                    <Text style={styles.discountTag}>₹{item.price} per unit</Text>
+                    {order.orderItems?.map((item, idx) => {
+                        const itemDisplay = getOrderItemDisplay(item);
+
+                        return (
+                            <View key={idx} style={styles.itemCard}>
+                                <Image
+                                    source={{ uri: resolveImageUrl(item.image) }}
+                                    style={styles.itemImage}
+                                />
+                                <View style={styles.itemInfo}>
+                                    <Text style={styles.itemName}>{itemDisplay.name}</Text>
+                                    <Text style={styles.itemVariant}>Quantity: {itemDisplay.quantityLabel}</Text>
+                                    <View style={styles.itemPriceRow}>
+                                        <Text style={styles.itemPrice}>₹{item.price * item.qty}</Text>
+                                        <Text style={styles.discountTag}>₹{item.price} per {itemDisplay.unitLabel}</Text>
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-                    ))}
+                        );
+                    })}
                 </View>
 
                 {/* Billing Details */}

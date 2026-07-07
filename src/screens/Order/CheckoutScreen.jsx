@@ -103,14 +103,16 @@ const CheckoutScreen = ({ navigation, route }) => {
                 orderItems: cartItems.filter(item => item.product).map(item => {
                     const pricingArray = isWholesale ? item.product?.businessPricing : item.product?.retailPricing;
                     const tier = pricingArray?.[item.tierIndex || 0];
-                    const unitLabel = tier?.unit ? ` (${tier.unit})` : '';
 
                     return {
                         product: item.product?._id,
-                        name: (item.product?.name || 'Product') + unitLabel,
+                        name: item.product?.name || 'Product',
                         qty: item.quantity,
                         image: item.product?.images?.[0] || '',
                         price: calculateProductPrice(item.product, item.quantity, isWholesale, item.tierIndex || 0),
+                        unit: tier?.unit || '',
+                        weight: item.product?.weight || item.product?.brand || '',
+                        tierLabel: tier?.label || '',
                         tierIndex: item.tierIndex || 0
                     };
                 }),
