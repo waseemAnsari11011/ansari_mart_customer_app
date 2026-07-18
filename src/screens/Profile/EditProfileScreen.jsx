@@ -6,11 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Dimensions,
   StatusBar,
   Image,
+  Platform,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import api, { resolveImageUrl } from '../../utils/api';
@@ -18,16 +19,64 @@ import { updateUser } from '../../redux/slices/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, ActivityIndicator } from 'react-native';
 
-const { width } = Dimensions.get('window');
-
 const EditProfileScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const user = useSelector(state => state.auth.user);
   const dispatch = useDispatch();
 
   const [name, setName] = useState(user?.name || '');
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   const [loading, setLoading] = useState(false);
+
+  const handlePhotoPick = async () => {
+    try {
+      const response = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.85,
+      });
+
+      if (response.didCancel) return;
+
+      if (response.errorCode) {
+        Alert.alert(
+          'Unable to select photo',
+          response.errorMessage || 'Please try again.',
+        );
+        return;
+      }
+
+      const photo = response.assets?.[0];
+      if (photo?.uri) setSelectedPhoto(photo);
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Unable to select photo', 'Please try again.');
+    }
+  };
+
+  const uploadProfilePhoto = async photo => {
+    const formData = new FormData();
+    const uri =
+      Platform.OS === 'ios' ? photo.uri.replace('file://', '') : photo.uri;
+
+    formData.append('image', {
+      uri,
+      type: photo.type || 'image/jpeg',
+      name: photo.fileName || `profile-${Date.now()}.jpg`,
+    });
+
+    const response = await api.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Accept: 'application/json',
+      },
+    });
+
+    return response.data.url;
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -37,7 +86,13 @@ const EditProfileScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const response = await api.patch('/users/update-profile', { name });
+      const profilePhoto = selectedPhoto
+        ? await uploadProfilePhoto(selectedPhoto)
+        : user?.profilePhoto;
+      const response = await api.patch('/users/update-profile', {
+        name: name.trim(),
+        ...(profilePhoto ? { profilePhoto } : {}),
+      });
       const updatedUser = response.data.user;
 
       // Update Redux
@@ -96,6 +151,7 @@ const EditProfileScreen = ({ navigation }) => {
             <Image
               source={{
                 uri:
+                  selectedPhoto?.uri ||
                   resolveImageUrl(user?.profilePhoto) ||
                   `https://ui-avatars.com/api/?name=${
                     name || 'User'
@@ -106,12 +162,8 @@ const EditProfileScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={styles.cameraBtn}
-              onPress={() =>
-                Alert.alert(
-                  'Coming Soon',
-                  'Profile photo upload will be available in the next update.',
-                )
-              }
+              onPress={handlePhotoPick}
+              disabled={loading}
             >
               <MaterialIcons name="photo-camera" size={20} color="#fff" />
             </TouchableOpacity>
@@ -151,7 +203,7 @@ const EditProfileScreen = ({ navigation }) => {
         style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}
       >
         <TouchableOpacity
-          style={[styles.saveBtn, loading && { opacity: 0.7 }]}
+          style={[styles.saveBtn, loading && styles.disabledBtn]}
           onPress={handleSave}
           disabled={loading}
         >
@@ -289,6 +341,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
+  },
+  disabledBtn: {
+    opacity: 0.7,
   },
   saveBtnText: {
     color: '#fff',
