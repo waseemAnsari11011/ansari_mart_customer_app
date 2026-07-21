@@ -467,8 +467,8 @@ const BusinessKYCScreen = ({ navigation }) => {
                 KYC Pending
               </Text>
               <Text style={styles.statusDesc}>
-                Please complete your business KYC to activate wholesale pricing
-                and bulk ordering.
+                Complete KYC to verify your business account. You can continue
+                using wholesale pricing and bulk ordering while it is pending.
               </Text>
             </View>
           </View>
