@@ -28,7 +28,7 @@ const CartScreen = ({ navigation, route }) => {
             }
         } catch (error) {
             console.error('Failed to update cart quantity:', error);
-            alert('Failed to update quantity. Please check your connection.');
+            alert(error?.message || 'Failed to update quantity. Please try again.');
         }
     };
 
@@ -104,7 +104,11 @@ const CartScreen = ({ navigation, route }) => {
                                                     <MaterialIcons name="remove" size={16} color="#3E920C" />
                                                 </TouchableOpacity>
                                                 <Text style={styles.qtyText}>{item.quantity}</Text>
-                                                <TouchableOpacity onPress={() => updateQty(item.product?._id, item.quantity + 1, item.tierIndex || 0)}>
+                                                <TouchableOpacity
+                                                    disabled={item.quantity >= (tier?.stock ?? 0)}
+                                                    style={{ opacity: item.quantity >= (tier?.stock ?? 0) ? 0.35 : 1 }}
+                                                    onPress={() => updateQty(item.product?._id, item.quantity + 1, item.tierIndex || 0)}
+                                                >
                                                     <MaterialIcons name="add" size={16} color="#3E920C" />
                                                 </TouchableOpacity>
                                             </View>

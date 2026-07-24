@@ -446,12 +446,14 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                             {qty}
                           </Text>
                           <TouchableOpacity
+                            disabled={qty >= tier.stock}
                             style={[
                               styles.tierQtyBtn,
                               isActive && styles.tierQtyBtnActive,
+                              qty >= tier.stock && { opacity: 0.35 },
                             ]}
                             onPress={() => {
-                              const newQty = qty + 1;
+                              const newQty = Math.min(tier.stock, qty + 1);
                               setQuantities(prev => ({
                                 ...prev,
                                 [idx]: newQty,
