@@ -151,7 +151,13 @@ const OrderSuccessScreen = ({ navigation, route }) => {
                                 <MaterialIcons name="receipt" size={20} color="#F68B1E" />
                                 <Text style={styles.invoiceText}>Order invoice generated</Text>
                             </View>
-                            <TouchableOpacity style={styles.downloadBtn}>
+                            <TouchableOpacity
+                                style={[styles.downloadBtn, (!orderId || loading) && styles.downloadBtnDisabled]}
+                                onPress={() => navigation.navigate('OrderDetails', { orderId })}
+                                disabled={!orderId || loading}
+                                accessibilityRole="button"
+                                accessibilityLabel="View order details"
+                            >
                                 <Text style={styles.downloadBtnText}>View Details</Text>
                                 <MaterialIcons name="chevron-right" size={16} color="#3E9400" />
                             </TouchableOpacity>
@@ -329,6 +335,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
+        paddingVertical: 8,
+        paddingLeft: 12,
+    },
+    downloadBtnDisabled: {
+        opacity: 0.5,
     },
     downloadBtnText: {
         fontSize: 12,

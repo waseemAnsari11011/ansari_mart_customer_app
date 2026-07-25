@@ -186,7 +186,7 @@ const RetailHomeScreen = ({ navigation }) => {
                     <>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>Shop by Category</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('CategoryListing', { isWholesale: false })}>
+                            <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate('CategoryListing', { isWholesale: false })}>
                                 <Text style={styles.viewAll}>View All</Text>
                             </TouchableOpacity>
                         </View>
@@ -213,8 +213,9 @@ const RetailHomeScreen = ({ navigation }) => {
             case 'SECTION_HEADER':
                 return (
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>{item.title}</Text>
-                        <TouchableOpacity 
+                        <Text style={styles.sectionTitle} numberOfLines={2} ellipsizeMode="tail">{item.title}</Text>
+                        <TouchableOpacity
+                            style={styles.viewAllButton}
                             onPress={() => navigation.navigate('ProductListing', { 
                                 categoryName: item.categoryName || 'All Products', 
                                 isWholesale: false 
@@ -403,8 +404,9 @@ const styles = StyleSheet.create({
     bannerIndicators: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
     indicator: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
     activeIndicator: { width: 16, backgroundColor: '#fff' },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 8, marginBottom: 16 },
-    sectionTitle: { fontSize: 18, fontWeight: '800', color: '#1A1A1A' },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 16, marginTop: 8, marginBottom: 16 },
+    sectionTitle: { flex: 1, fontSize: 18, lineHeight: 24, fontWeight: '800', color: '#1A1A1A', paddingRight: 12 },
+    viewAllButton: { flexShrink: 0, paddingTop: 2 },
     viewAll: { fontSize: 14, color: '#3e9400', fontWeight: '700' },
     categoryList: { paddingLeft: 16, paddingRight: 8, marginBottom: 16 },
     categoryItem: { alignItems: 'center', marginRight: 24, width: 64 },

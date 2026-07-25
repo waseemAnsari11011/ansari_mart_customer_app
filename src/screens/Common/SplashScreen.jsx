@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import VersionCheck from 'react-native-version-check';
 import ForceUpdateModal from './ForceUpdateModal';
-import { View, Text, StyleSheet, Animated, Image, ActivityIndicator, BackHandler, Linking } from 'react-native';
+import { View, StyleSheet, Animated, Image, ActivityIndicator, BackHandler, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../redux/slices/authSlice';
@@ -137,22 +137,16 @@ const SplashScreen = ({ navigation }) => {
         navigation.replace('RoleSelection');
       }
     });
-  }, [fadeAnim, navigation]);
+  }, [dispatch, fadeAnim, navigation]);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
+      <Animated.View style={[styles.splashContent, { opacity: fadeAnim }]}>
         <Image
-          source={require('../../assets/images/logo.png')}
-          style={styles.logo}
+          source={require('../../assets/images/splash.jpeg')}
+          style={styles.splashImage}
           resizeMode="contain"
         />
-        <View style={styles.logoText}>
-          <Text style={styles.ansari}>Ansari</Text>
-          <Text style={styles.mart}>Mart</Text>
-        </View>
-        <Text style={styles.subtitle}>Smart Wholesale & Retail Shopping Platform</Text>
-
         <ActivityIndicator
           size="large"
           color="#4a9214"
@@ -176,32 +170,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
   },
-  logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 10,
+  splashContent: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  logoText: {
-    flexDirection: 'row',
-  },
-  ansari: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#4a9214',
-  },
-  mart: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#f1811e',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
-    marginBottom: 30,
+  splashImage: {
+    width: '100%',
+    height: '100%',
   },
   loader: {
-    marginTop: 20,
+    position: 'absolute',
+    bottom: '12%',
   },
 });
 

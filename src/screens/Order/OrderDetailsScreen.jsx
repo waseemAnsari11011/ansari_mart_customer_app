@@ -1,11 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
+import { updateOrder } from '../../redux/slices/orderSlice';
 import api, { resolveImageUrl } from '../../utils/api';
-import { ActivityIndicator } from 'react-native';
-
-const { width } = Dimensions.get('window');
 
 const splitUnitFromName = (name = '') => {
     const trimmedName = String(name || '').trim();
@@ -39,9 +38,11 @@ const getOrderItemDisplay = (item) => {
 
 const OrderDetailsScreen = ({ navigation, route }) => {
     const insets = useSafeAreaInsets();
+    const dispatch = useDispatch();
     const { orderId } = route.params || {};
     const [order, setOrder] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
+    const [cancelling, setCancelling] = React.useState(false);
 
     React.useEffect(() => {
         const fetchOrder = async () => {
@@ -56,6 +57,36 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         };
         if (orderId) fetchOrder();
     }, [orderId]);
+
+    const cancelOrder = () => {
+        Alert.alert(
+            'Cancel order?',
+            'This action cannot be undone.',
+            [
+                { text: 'Keep Order', style: 'cancel' },
+                {
+                    text: 'Cancel Order',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setCancelling(true);
+                            const { data } = await api.put(`/orders/${orderId}/cancel`);
+                            setOrder(data);
+                            dispatch(updateOrder(data));
+                            Alert.alert('Order cancelled', 'Your order has been cancelled successfully.');
+                        } catch (error) {
+                            Alert.alert(
+                                'Unable to cancel',
+                                error.response?.data?.message || 'Please try again.'
+                            );
+                        } finally {
+                            setCancelling(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     if (loading) {
         return (
@@ -98,7 +129,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: (order.status === 'Pending' ? 190 : 120) + insets.bottom }]} showsVerticalScrollIndicator={false}>
                 {/* Order ID & Status */}
                 <View style={[styles.orderStatusCard, { borderTopWidth: 1, borderTopColor: '#F1F5F9' }]}>
                     <View style={styles.statusHeader}>
@@ -107,11 +138,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                             <Text style={styles.orderIdText}>#{order._id?.toString().length > 12 ? order._id.substring(order._id.length - 8) : order._id}</Text>
                         </View>
                         <View style={[styles.statusBadge, {
-                            backgroundColor: order.status === 'Delivered' ? 'rgba(62, 148, 0, 0.1)' : 'rgba(246, 139, 30, 0.1)',
-                            borderColor: order.status === 'Delivered' ? 'rgba(62, 148, 0, 0.2)' : 'rgba(246, 139, 30, 0.2)'
+                            backgroundColor: order.status === 'Delivered' ? 'rgba(62, 148, 0, 0.1)' : order.status === 'Cancelled' ? '#FEF2F2' : 'rgba(246, 139, 30, 0.1)',
+                            borderColor: order.status === 'Delivered' ? 'rgba(62, 148, 0, 0.2)' : order.status === 'Cancelled' ? '#FCA5A5' : 'rgba(246, 139, 30, 0.2)'
                         }]}>
                             <Text style={[styles.statusBadgeText, {
-                                color: order.status === 'Delivered' ? '#3E9400' : '#F68B1E'
+                                color: order.status === 'Delivered' ? '#3E9400' : order.status === 'Cancelled' ? '#DC2626' : '#F68B1E'
                             }]}>{order.status?.toUpperCase()}</Text>
                         </View>
                     </View>
@@ -225,6 +256,22 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
             {/* Footer */}
             <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+                {order.status === 'Pending' && (
+                    <TouchableOpacity
+                        style={styles.cancelBtn}
+                        onPress={cancelOrder}
+                        disabled={cancelling}
+                    >
+                        {cancelling ? (
+                            <ActivityIndicator size="small" color="#DC2626" />
+                        ) : (
+                            <MaterialIcons name="cancel" size={20} color="#DC2626" />
+                        )}
+                        <Text style={styles.cancelBtnText}>
+                            {cancelling ? 'Cancelling...' : 'Cancel Order'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
                 <TouchableOpacity style={styles.downloadBtn}>
                     <MaterialIcons name="download" size={20} color="#fff" />
                     <Text style={styles.downloadBtnText}>Download Invoice</Text>
@@ -486,6 +533,23 @@ const styles = StyleSheet.create({
         padding: 16,
         borderTopWidth: 1,
         borderTopColor: '#F1F5F9',
+    },
+    cancelBtn: {
+        height: 52,
+        marginBottom: 10,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+        backgroundColor: '#FEF2F2',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 8,
+    },
+    cancelBtnText: {
+        color: '#DC2626',
+        fontSize: 15,
+        fontWeight: 'bold',
     },
     downloadBtn: {
         backgroundColor: '#3E9400',
