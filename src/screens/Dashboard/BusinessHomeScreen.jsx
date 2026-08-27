@@ -316,10 +316,6 @@ const BusinessHomeScreen = ({ navigation }) => {
                 <View style={styles.headerTop}>
                     <View style={styles.logoRow}>
                         <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} />
-                        <View style={styles.logoText}>
-                            <Text style={styles.ansari}>Ansari</Text>
-                            <Text style={styles.mart}>Mart</Text>
-                        </View>
                     </View>
 
                     <TouchableOpacity style={styles.locationPicker} onPress={() => navigation.navigate('ManageAddress')}>
@@ -396,9 +392,6 @@ const styles = StyleSheet.create({
     headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     logoImg: { width: 32, height: 32, borderRadius: 8 },
-    logoText: { flexDirection: 'row' },
-    ansari: { fontSize: 20, fontWeight: '900', color: '#4a9214' },
-    mart: { fontSize: 20, fontWeight: '900', color: '#f1811e' },
     locationPicker: { alignItems: 'flex-end' },
     locationLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
     deliverToText: { fontSize: 10, fontWeight: '800', color: '#64748B', textTransform: 'uppercase' },

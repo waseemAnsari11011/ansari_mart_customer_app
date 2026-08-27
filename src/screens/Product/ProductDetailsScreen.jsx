@@ -166,7 +166,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out ${product?.name || 'this product'} on AnsariMart!`,
+        message: `Check out ${product?.name || 'this product'} on amart!`,
       });
     } catch (error) {
       console.log(error);

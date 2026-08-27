@@ -191,7 +191,7 @@ const OrderTrackingScreen = ({ navigation, route }) => {
                             style={styles.driverImg}
                         />
                         <View style={styles.driverInfo}>
-                            <Text style={styles.partnerText}>ANSARI MART PARTNER</Text>
+                            <Text style={styles.partnerText}>amart partner</Text>
                             <Text style={styles.driverName}>Ramesh Kumar</Text>
                             <View style={styles.ratingBox}>
                                 <MaterialIcons name="star" size={14} color="#FBBF24" />

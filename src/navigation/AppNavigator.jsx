@@ -1,9 +1,13 @@
 import React from 'react';
+import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { navigationRef } from './navigationRef';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCartThunk } from '../redux/slices/cartSlice';
+import { clearCartLocal, fetchCartThunk } from '../redux/slices/cartSlice';
+import { logout } from '../redux/slices/authSlice';
+import { registerSessionExpiryHandler } from '../utils/sessionExpiry';
 
 import SplashScreen from '../screens/Common/SplashScreen';
 import RoleSelectionScreen from '../screens/Auth/RoleSelectionScreen';
@@ -50,6 +54,37 @@ const AppNavigator = () => {
         }
     }, [dispatch, token]);
 
+    React.useEffect(() => {
+        return registerSessionExpiryHandler(releaseNotice => {
+            Alert.alert(
+                'Session Expired',
+                'Your login session is no longer valid. Please log out and log in again to continue.',
+                [
+                    {
+                        text: 'Log In Again',
+                        onPress: async () => {
+                            try {
+                                await AsyncStorage.multiRemove(['userToken', 'userInfo']);
+                                dispatch(clearCartLocal());
+                                dispatch(logout());
+
+                                if (navigationRef.isReady()) {
+                                    navigationRef.resetRoot({
+                                        index: 0,
+                                        routes: [{ name: 'RoleSelection' }],
+                                    });
+                                }
+                            } finally {
+                                releaseNotice();
+                            }
+                        },
+                    },
+                ],
+                { cancelable: false },
+            );
+        });
+    }, [dispatch]);
+
     return (
         <NavigationContainer ref={navigationRef}>
             <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
@@ -89,4 +124,3 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
-

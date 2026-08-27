@@ -245,7 +245,7 @@ const CustomerLoginScreen = ({ navigation }) => {
                 >
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>Welcome to AnsariMart!</Text>
+                            <Text style={styles.modalTitle}>Welcome to amart!</Text>
                             <Text style={styles.modalSubtitle}>Please enter your name to continue</Text>
 
                             <View style={styles.modalInputGroup}>

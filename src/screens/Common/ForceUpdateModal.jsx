@@ -30,7 +30,7 @@ const ForceUpdateModal = ({
                     </Text>
 
                     <Text style={styles.message}>
-                        A new version of Ansari Mart is available with
+                        A new version of amart is available with
                         improvements, bug fixes and new features.
                         Please update the app to continue.
                     </Text>

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
+import { notifySessionExpired } from './sessionExpiry';
 
 // Automatic BASE_URL detection for development
 // For production, use your server URL
@@ -56,6 +57,24 @@ api.interceptors.request.use(
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+api.interceptors.response.use(
+    response => response,
+    async error => {
+        if (error.response?.status === 401) {
+            try {
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    notifySessionExpired();
+                }
+            } catch (storageError) {
+                console.error('Error checking session after unauthorized response', storageError);
+            }
+        }
+
         return Promise.reject(error);
     }
 );
