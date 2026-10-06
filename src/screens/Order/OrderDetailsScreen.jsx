@@ -114,7 +114,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     });
 
     const deliveryFee = order.deliveryFee || 0;
-    const itemSubtotal = order.totalPrice - deliveryFee;
+    const itemSubtotal = (order.subtotal ?? (order.totalPrice - deliveryFee + (order.discountAmount || 0)));
 
     return (
         <View style={styles.container}>
@@ -158,6 +158,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
                     {order.orderItems?.map((item, idx) => {
                         const itemDisplay = getOrderItemDisplay(item);
+                        const productOffer = order.discountProducts?.find(offer => offer.product === (item.product?._id || item.product) && offer.tierIndex === (item.tierIndex || 0));
 
                         return (
                             <View key={idx} style={styles.itemCard}>
@@ -167,6 +168,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                                 />
                                 <View style={styles.itemInfo}>
                                     <Text style={styles.itemName}>{itemDisplay.name}</Text>
+                                    {productOffer && <Text style={styles.discountTag}>Offer: {productOffer.qty} unit at ₹{productOffer.offerPrice}/unit · savings included below</Text>}
                                     <Text style={styles.itemVariant}>Quantity: {itemDisplay.quantityLabel}</Text>
                                     <View style={styles.itemPriceRow}>
                                         <Text style={styles.itemPrice}>₹{item.price * item.qty}</Text>
@@ -207,6 +209,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                                 </Text>
                             )}
                         </View>
+                        {order.discountAmount > 0 && <View style={styles.billingRow}>
+                            <Text style={[styles.billingLabel, { flex: 1 }]}>{order.discountName || 'Discount'}</Text>
+                            <Text style={[styles.billingValue, { color: '#3E9400' }]}>−₹{order.discountAmount}</Text>
+                        </View>}
                         <View style={styles.divider} />
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Grand Total</Text>

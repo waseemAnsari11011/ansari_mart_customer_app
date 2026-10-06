@@ -18,6 +18,9 @@ const CheckoutScreen = ({ navigation, route }) => {
     const [upiMethod, setUpiMethod] = useState('PhonePe');
     const [upiId, setUpiId] = useState('');
     const [loading, setLoading] = useState(false);
+    const [quote, setQuote] = useState(null);
+    const [quoteError, setQuoteError] = useState('');
+    const [quoteVersion, setQuoteVersion] = useState(0);
     const [logisticsSettings, setLogisticsSettings] = useState(null);
 
     // Redux State
@@ -39,25 +42,27 @@ const CheckoutScreen = ({ navigation, route }) => {
         }).catch(err => console.log('[CHECKOUT] Failed to fetch logistics settings:', err));
     }, [dispatch]);
 
-    // Calculate Totals
-    const subtotal = cartItems.filter(i => i.product).reduce((total, item) => {
-        const unitPrice = calculateProductPrice(item.product, item.quantity, isWholesale, item.tierIndex || 0);
-        return total + unitPrice * item.quantity;
-    }, 0);
+    const quoteItems = JSON.stringify(cartItems.filter(item => item.product).map(item => ({
+        product: item.product._id, qty: item.quantity, tierIndex: item.tierIndex || 0,
+    })));
+    const quoteKey = `${user?._id}:${user?.type}:${quoteItems}:${quoteVersion}`;
+    const currentQuote = quote?.key === quoteKey ? quote.data : null;
+    useEffect(() => {
+        let active = true;
+        setQuoteError('');
+        api.post('/orders/preview', { orderItems: JSON.parse(quoteItems) })
+            .then(({ data }) => { if (active) setQuote({ key: quoteKey, data }); })
+            .catch(error => { if (active) setQuoteError(error.response?.data?.message || 'Unable to calculate your total. Please retry.'); });
+        return () => { active = false; };
+    }, [quoteItems, quoteKey]);
 
-    let deliveryFee = 0;
-
-    const userType = user?.type; // 'Retail' or 'Business' — same as DB
-    const rule = logisticsSettings?.[userType];
-    if (rule?.mov != null && rule?.deliveryCharge != null) {
-        if (subtotal < rule.mov) {
-            deliveryFee = rule.deliveryCharge;
-        }
-    }
-
-    const orderTotal = subtotal + deliveryFee;
+    const subtotal = currentQuote?.subtotal || 0;
+    const deliveryFee = currentQuote?.deliveryFee || 0;
+    const orderTotal = currentQuote?.totalPrice || 0;
+    const rule = logisticsSettings?.[user?.type];
 
     const handlePlaceOrder = async () => {
+        if (!currentQuote) return;
         if (!selectedAddress) {
             Alert.alert('Error', 'Please select a delivery address');
             return;
@@ -126,6 +131,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                 },
                 paymentMethod: finalPaymentMethod,
                 totalPrice: orderTotal,
+                expectedTotal: orderTotal,
                 adminId: user?._id, // Mapping user to admin field as per backend schema
                 type: isWholesale ? 'Business' : 'Retail'
             };
@@ -141,6 +147,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                 });
             }
         } catch (error) {
+            setQuoteVersion(value => value + 1);
             Alert.alert(
                 'Error',
                 error.response?.data?.message ||
@@ -248,6 +255,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                             const pricingArray = isWholesale ? item.product?.businessPricing : item.product?.retailPricing;
                             const tier = pricingArray?.[item.tierIndex || 0];
                             const unitPrice = calculateProductPrice(item.product, item.quantity, isWholesale, item.tierIndex || 0);
+                            const productOffer = currentQuote?.discountProducts?.find(offer => offer.product === item.product._id && offer.tierIndex === (item.tierIndex || 0));
                             const itemTotal = unitPrice * item.quantity;
 
                             return (
@@ -266,6 +274,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                                                 {tier?.unit ? ` (${tier.unit})` : ''}
                                             </Text>
                                         </View>
+                                        {productOffer && <Text style={styles.savingsLabel}>Offer: {productOffer.qty} unit at ₹{productOffer.offerPrice}/unit · savings included below</Text>}
                                         <View style={styles.productPriceRow}>
                                             <Text style={styles.productPrice}>₹{itemTotal.toLocaleString('en-IN')}</Text>
                                             <View style={styles.qtyBadge}>
@@ -354,9 +363,15 @@ const CheckoutScreen = ({ navigation, route }) => {
                 <View style={styles.summarySection}>
                     <Text style={styles.sectionTitle}>ORDER SUMMARY</Text>
                     <View style={styles.summaryCardBody}>
+                        {!currentQuote && <Text style={styles.summaryItemLabel}>{quoteError || 'Calculating total and best offer…'}</Text>}
+                        {!!quoteError && <TouchableOpacity onPress={() => setQuoteVersion(value => value + 1)}><Text style={styles.savingsLabel}>Retry</Text></TouchableOpacity>}
+                        {currentQuote?.discountAmount > 0 && <View style={styles.summaryItemRow}>
+                            <Text style={[styles.savingsLabel, { flex: 1 }]}>{currentQuote.discountName}</Text>
+                            <Text style={styles.savingsValue}>−₹{currentQuote.discountAmount.toLocaleString('en-IN')}</Text>
+                        </View>}
                         <View style={styles.summaryItemRow}>
                             <Text style={styles.summaryItemLabel}>Items Total ({cartItems.filter(i => i.product).length})</Text>
-                            <Text style={styles.summaryItemValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
+                            <Text style={styles.summaryItemValue}>{currentQuote ? `₹${subtotal.toLocaleString('en-IN')}` : '—'}</Text>
                         </View>
                         <View style={{ marginBottom: 12 }}>
 
@@ -370,7 +385,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                                         fontWeight: 'bold'
                                     }
                                 ]}>
-                                    {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                                    {!currentQuote ? '—' : deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
                                 </Text>
                             </View>
 
@@ -449,7 +464,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                         </View>
                         <View style={styles.finalTotalRow}>
                             <Text style={styles.finalTotalLabel}>Total Amount</Text>
-                            <Text style={styles.finalTotalValue}>₹{orderTotal.toLocaleString('en-IN')}</Text>
+                            <Text style={styles.finalTotalValue}>{currentQuote ? `₹${orderTotal.toLocaleString('en-IN')}` : '—'}</Text>
                         </View>
                     </View>
                 </View>
@@ -458,9 +473,9 @@ const CheckoutScreen = ({ navigation, route }) => {
             {/* Bottom Button */}
             <View style={[styles.footerBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
                 <TouchableOpacity
-                    style={[styles.mainPlaceOrderBtn, (loading || cartItems.length === 0) && styles.placeOrderBtnDisabled]}
+                    style={[styles.mainPlaceOrderBtn, (loading || !currentQuote || cartItems.length === 0) && styles.placeOrderBtnDisabled]}
                     onPress={handlePlaceOrder}
-                    disabled={loading || cartItems.length === 0}
+                    disabled={loading || !currentQuote || cartItems.length === 0}
                     activeOpacity={0.9}
                 >
                     {loading ? (
