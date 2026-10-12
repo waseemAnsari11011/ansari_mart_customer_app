@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
@@ -241,7 +242,7 @@ const OrderHistoryScreen = ({ navigation, route }) => {
                   </View>
                   <View style={styles.amountContainer}>
                     <Text style={styles.amountLabel}>Total Amount</Text>
-                    <Text style={styles.totalAmount}>₹{order.totalPrice}</Text>
+                    <Text style={styles.totalAmount}>₹{formatPrice(order.totalPrice)}</Text>
                   </View>
                 </View>
 

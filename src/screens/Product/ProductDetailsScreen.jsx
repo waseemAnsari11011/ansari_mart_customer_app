@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -20,6 +21,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { calculateProductPrice, getBasePrice } from '../../utils/pricing';
 import api, { resolveImageUrl } from '../../utils/api';
+import ProductOffers from '../../components/Product/ProductOffers';
 
 const { width } = Dimensions.get('window');
 
@@ -326,11 +328,13 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                   { color: '#2563eb', fontWeight: '900' },
                 ]}
               >
-                MRP: ₹{product.mrp}
+                MRP: ₹{formatPrice(product.mrp)}
               </Text>
             )}
           </View>
           <Text style={styles.productTitle}>{product?.name}</Text>
+
+          <ProductOffers product={product} isWholesale={isWholesale} />
 
           {/* Dynamic Pricing Tiers */}
           {(isWholesale ? product?.businessPricing : product?.retailPricing)
@@ -402,7 +406,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                             isActive && { color: '#3E9400' },
                           ]}
                         >
-                          ₹{tier.price}
+                          ₹{formatPrice(tier.price)}
                         </Text>
                       </View>
 
@@ -487,7 +491,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                       <View key={idx} style={styles.summaryChip}>
                         <Text style={styles.summaryChipText}>
                           {qty} × {tier?.unit || 'Units'} = ₹
-                          {(qty * (tier?.price || 0)).toLocaleString()}
+                          {formatPrice(qty * (tier?.price || 0))}
                         </Text>
                       </View>
                     );
@@ -497,7 +501,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
               <View style={styles.selectionTotalRow}>
                 <Text style={styles.selectionTotalLabel}>Total:</Text>
                 <Text style={styles.selectionTotalPrice}>
-                  ₹{totalAmount.toLocaleString()}
+                  ₹{formatPrice(totalAmount)}
                 </Text>
               </View>
             </View>
@@ -516,7 +520,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                   {otherItemsQty + totalSelectedQty}{' '}
                   {otherItemsQty + totalSelectedQty === 1 ? 'Item' : 'Items'} |{' '}
                 </Text>
-                ₹{(otherItemsAmount + totalAmount).toLocaleString()}
+                ₹{formatPrice(otherItemsAmount + totalAmount)}
               </Text>
             </View>
           </View>
@@ -563,7 +567,7 @@ const ProductDetailsScreen = ({ navigation, route }) => {
                     </Text>
                     <View style={styles.relatedPriceRow}>
                       <Text style={styles.relatedPrice}>
-                        ₹{getBasePrice(item, isWholesale)}
+                        ₹{formatPrice(getBasePrice(item, isWholesale))}
                       </Text>
                       <View style={styles.relatedAddBtn}>
                         <MaterialIcons name="add" size={16} color="#3E9400" />

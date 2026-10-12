@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -168,11 +169,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                                 />
                                 <View style={styles.itemInfo}>
                                     <Text style={styles.itemName}>{itemDisplay.name}</Text>
-                                    {productOffer && <Text style={styles.discountTag}>Offer: {productOffer.qty} unit at ₹{productOffer.offerPrice}/unit · savings included below</Text>}
+                                    {productOffer && <Text style={styles.discountTag}>Offer: {productOffer.qty} unit at ₹{formatPrice(productOffer.offerPrice)}/unit · savings included below</Text>}
                                     <Text style={styles.itemVariant}>Quantity: {itemDisplay.quantityLabel}</Text>
                                     <View style={styles.itemPriceRow}>
-                                        <Text style={styles.itemPrice}>₹{item.price * item.qty}</Text>
-                                        <Text style={styles.discountTag}>₹{item.price} per {itemDisplay.unitLabel}</Text>
+                                        <Text style={styles.itemPrice}>₹{formatPrice(item.price * item.qty)}</Text>
+                                        <Text style={styles.discountTag}>₹{formatPrice(item.price)} per {itemDisplay.unitLabel}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -187,7 +188,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                         <View style={styles.billingRow}>
                             <Text style={styles.billingLabel}>Item Subtotal</Text>
                             <Text style={styles.billingValue}>
-                                ₹{itemSubtotal.toLocaleString('en-IN')}
+                                ₹{formatPrice(itemSubtotal)}
                             </Text>
                         </View>
 
@@ -196,7 +197,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
                             {deliveryFee > 0 ? (
                                 <Text style={styles.billingValue}>
-                                    ₹{deliveryFee.toLocaleString('en-IN')}
+                                    ₹{formatPrice(deliveryFee)}
                                 </Text>
                             ) : (
                                 <Text
@@ -211,12 +212,12 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                         </View>
                         {order.discountAmount > 0 && <View style={styles.billingRow}>
                             <Text style={[styles.billingLabel, { flex: 1 }]}>{order.discountName || 'Discount'}</Text>
-                            <Text style={[styles.billingValue, { color: '#3E9400' }]}>−₹{order.discountAmount}</Text>
+                            <Text style={[styles.billingValue, { color: '#3E9400' }]}>−₹{formatPrice(order.discountAmount)}</Text>
                         </View>}
                         <View style={styles.divider} />
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Grand Total</Text>
-                            <Text style={styles.totalValue}>₹{order.totalPrice}</Text>
+                            <Text style={styles.totalValue}>₹{formatPrice(order.totalPrice)}</Text>
                         </View>
                     </View>
                 </View>

@@ -1,3 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { updateUser } from '../../redux/slices/authSlice';
+import { fetchCartThunk } from '../../redux/slices/cartSlice';
+import useHomeRefresh from '../../hooks/useHomeRefresh';
+import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, Dimensions, StatusBar, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -5,6 +10,7 @@ import { setCategories, setProducts, setBanners } from '../../redux/slices/produ
 import { addToCartThunk } from '../../redux/slices/cartSlice';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import BottomTab from '../../components/BottomTab';
+import CouponsOffers from '../../components/CouponsOffers';
 import ProductQuickView from '../../components/Product/ProductQuickView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,6 +30,7 @@ const RetailHomeScreen = ({ navigation }) => {
     const { categories, products, banners = [], pagination } = useSelector(state => state.products);
     const { addresses } = useSelector(state => state.address);
     const { cartItems } = useSelector(state => state.cart);
+    const [discountRules, setDiscountRules] = useState([]);
     const [activeBanner, setActiveBanner] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -46,6 +53,27 @@ const RetailHomeScreen = ({ navigation }) => {
 
     const fetchData = async (page = 1) => {
         if (page === 1) {
+            // Validate the session before loading a customer-type-specific catalog.
+            try {
+                const { data: profile } = await api.get('/users/profile');
+                dispatch(updateUser(profile));
+                await AsyncStorage.setItem('userInfo', JSON.stringify(profile));
+                const target = profile.type === 'Business' ? 'BusinessHome' : 'RetailHome';
+                if (target !== 'RetailHome') {
+                    setDiscountRules([]);
+                    dispatch(setCategories([]));
+                    dispatch(setProducts([]));
+                    dispatch(fetchCartThunk());
+                    navigation.replace(target);
+                    return;
+                }
+            } catch (error) {
+                if (error.response?.status === 401 || error.response?.status === 403) {
+                    setDiscountRules([]);
+                    return;
+                }
+                console.warn('Unable to refresh home profile:', error.message);
+            }
             try {
                 // Load categories and settings independently on initial load
                 const [catRes, settingsRes] = await Promise.all([
@@ -55,6 +83,9 @@ const RetailHomeScreen = ({ navigation }) => {
                 dispatch(setCategories(catRes.data));
                 const activeBanners = settingsRes.data?.banners?.filter(b => b.status === 'ACTIVE') || [];
                 dispatch(setBanners(activeBanners));
+                setDiscountRules((settingsRes.data?.discountRules || []).filter(rule =>
+                    rule.active && (rule.customerType === 'All' || rule.customerType === 'Retail')
+                ));
             } catch (error) {
                 console.error('Error loading static home data:', error);
             }
@@ -105,6 +136,7 @@ const RetailHomeScreen = ({ navigation }) => {
 
         if (banners.length > 0) data.push({ type: 'BANNERS', id: 'banners' });
         if (categories.length > 0) data.push({ type: 'CATEGORIES', id: 'categories' });
+        if (discountRules.length > 0) data.push({ type: 'OFFERS', id: 'offers' });
         
         if (products.length === 0 && !loadingMore) {
             data.push({ type: 'LOADING', id: 'loading' });
@@ -143,7 +175,7 @@ const RetailHomeScreen = ({ navigation }) => {
             }
         }
         return data;
-    }, [banners, categories, products, loadingMore, searchQuery]);
+    }, [banners, categories, products, loadingMore, searchQuery, discountRules]);
 
     const renderItem = useCallback(({ item }) => {
         switch (item.type) {
@@ -210,6 +242,8 @@ const RetailHomeScreen = ({ navigation }) => {
                         </View>
                     </>
                 );
+            case 'OFFERS':
+                return <CouponsOffers rules={discountRules} isWholesale={false} />;
             case 'SECTION_HEADER':
                 return (
                     <View style={styles.sectionHeader}>
@@ -258,11 +292,11 @@ const RetailHomeScreen = ({ navigation }) => {
                                     <Text style={styles.productBrand}>{product.brand || ''}</Text>
                                     <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
                                     {!!product.mrp && (
-                                        <Text style={styles.mrpTextSmall}>MRP: ₹{product.mrp}</Text>
+                                        <Text style={styles.mrpTextSmall}>MRP: ₹{formatPrice(product.mrp)}</Text>
                                     )}
                                     <View style={styles.productFooter}>
                                         <View>
-                                            <Text style={styles.productPrice}>₹{getLowestPrice(product, false)}</Text>
+                                            <Text style={styles.productPrice}>₹{formatPrice(getLowestPrice(product, false))}</Text>
                                         </View>
                                         <TouchableOpacity 
                                             style={styles.addBtn}
@@ -285,11 +319,9 @@ const RetailHomeScreen = ({ navigation }) => {
             default:
                 return null;
         }
-    }, [banners, categories, activeBanner, width, navigation, handleAddToCart, cartItems]);
+    }, [banners, categories, activeBanner, width, navigation, handleAddToCart, cartItems, discountRules]);
     
-    useEffect(() => {
-        fetchData(1);
-    }, []);
+    useHomeRefresh(() => fetchData(1));
 
     useEffect(() => {
         if (!banners || banners.length === 0) return;

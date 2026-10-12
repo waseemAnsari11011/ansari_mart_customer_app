@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Modal, Animated, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -119,7 +120,7 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                 <Text style={styles.brandText}>{product?.brand || ''}</Text>
                                 {!!product?.mrp && (
                                     <Text style={[styles.brandText, { color: '#2563eb', fontWeight: '900' }]}>
-                                        MRP: ₹{product.mrp}
+                                        MRP: ₹{formatPrice(product.mrp)}
                                     </Text>
                                 )}
                             </View>
@@ -158,7 +159,7 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                                     </View>
 
                                                     <View style={[styles.cell, { flex: 1, alignItems: 'center' }]}>
-                                                        <Text style={[styles.tierPrice, isActive && { color: '#3E9400' }]}>₹{tier.price}</Text>
+                                                        <Text style={[styles.tierPrice, isActive && { color: '#3E9400' }]}>₹{formatPrice(tier.price)}</Text>
                                                     </View>
 
                                                     <View style={[styles.cell, { flex: 1.2, alignItems: 'flex-end' }]}>
@@ -209,7 +210,7 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                                 return (
                                                     <View key={idx} style={styles.summaryChip}>
                                                         <Text style={styles.summaryChipText}>
-                                                            {qty} × {tier?.unit || 'Units'} = ₹{(qty * (tier?.price || 0)).toLocaleString()}
+                                                            {qty} × {tier?.unit || 'Units'} = ₹{formatPrice(qty * (tier?.price || 0))}
                                                         </Text>
                                                     </View>
                                                 );
@@ -218,7 +219,7 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                     <View style={styles.selectionSummaryDivider} />
                                     <View style={styles.selectionTotalRow}>
                                         <Text style={styles.selectionTotalLabel}>Total:</Text>
-                                        <Text style={styles.selectionTotalPrice}>₹{totalAmount.toLocaleString()}</Text>
+                                        <Text style={styles.selectionTotalPrice}>₹{formatPrice(totalAmount)}</Text>
                                     </View>
                                 </View>
                             )}
@@ -228,7 +229,7 @@ const ProductQuickView = ({ isVisible, onClose, product, isWholesale }) => {
                                     <MaterialIcons name="shopping-basket" size={18} color="#64748b" style={{ marginRight: 6 }} />
                                     <Text style={styles.totalPrice}>
                                         <Text style={styles.totalLabel}>{otherItemsQty + totalSelectedQty} {otherItemsQty + totalSelectedQty === 1 ? 'Item' : 'Items'} | </Text>
-                                        ₹{(otherItemsAmount + totalAmount).toLocaleString()}
+                                        ₹{formatPrice(otherItemsAmount + totalAmount)}
                                     </Text>
                                 </View>
                                 <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#F58220' }]} onPress={handleViewCart}>

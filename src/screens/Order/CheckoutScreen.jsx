@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -270,13 +271,13 @@ const CheckoutScreen = ({ navigation, route }) => {
                                         <View>
                                             <Text style={styles.productName} numberOfLines={1}>{item.product?.name}</Text>
                                             <Text style={styles.wholesaleRate}>
-                                                {isWholesale ? 'Wholesale' : 'Retail'}: ₹{unitPrice}/unit
+                                                {isWholesale ? 'Wholesale' : 'Retail'}: ₹{formatPrice(unitPrice)}/unit
                                                 {tier?.unit ? ` (${tier.unit})` : ''}
                                             </Text>
                                         </View>
-                                        {productOffer && <Text style={styles.savingsLabel}>Offer: {productOffer.qty} unit at ₹{productOffer.offerPrice}/unit · savings included below</Text>}
+                                        {productOffer && <Text style={styles.savingsLabel}>Offer: {productOffer.qty} unit at ₹{formatPrice(productOffer.offerPrice)}/unit · savings included below</Text>}
                                         <View style={styles.productPriceRow}>
-                                            <Text style={styles.productPrice}>₹{itemTotal.toLocaleString('en-IN')}</Text>
+                                            <Text style={styles.productPrice}>₹{formatPrice(itemTotal)}</Text>
                                             <View style={styles.qtyBadge}>
                                                 <Text style={styles.qtyText}>Qty: {item.quantity}</Text>
                                             </View>
@@ -367,11 +368,11 @@ const CheckoutScreen = ({ navigation, route }) => {
                         {!!quoteError && <TouchableOpacity onPress={() => setQuoteVersion(value => value + 1)}><Text style={styles.savingsLabel}>Retry</Text></TouchableOpacity>}
                         {currentQuote?.discountAmount > 0 && <View style={styles.summaryItemRow}>
                             <Text style={[styles.savingsLabel, { flex: 1 }]}>{currentQuote.discountName}</Text>
-                            <Text style={styles.savingsValue}>−₹{currentQuote.discountAmount.toLocaleString('en-IN')}</Text>
+                            <Text style={styles.savingsValue}>−₹{formatPrice(currentQuote.discountAmount)}</Text>
                         </View>}
                         <View style={styles.summaryItemRow}>
                             <Text style={styles.summaryItemLabel}>Items Total ({cartItems.filter(i => i.product).length})</Text>
-                            <Text style={styles.summaryItemValue}>{currentQuote ? `₹${subtotal.toLocaleString('en-IN')}` : '—'}</Text>
+                            <Text style={styles.summaryItemValue}>{currentQuote ? `₹${formatPrice(subtotal)}` : '—'}</Text>
                         </View>
                         <View style={{ marginBottom: 12 }}>
 
@@ -385,7 +386,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                                         fontWeight: 'bold'
                                     }
                                 ]}>
-                                    {!currentQuote ? '—' : deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                                    {!currentQuote ? '—' : deliveryFee === 0 ? 'FREE' : `₹${formatPrice(deliveryFee)}`}
                                 </Text>
                             </View>
 
@@ -430,8 +431,8 @@ const CheckoutScreen = ({ navigation, route }) => {
                                             lineHeight: 18
                                         }}>
                                             <Text style={{ fontWeight: '600' }}>
-                                                ₹{rule?.deliveryCharge} charge:
-                                            </Text> applies if order is below ₹{rule?.mov}
+                                                ₹{formatPrice(rule?.deliveryCharge)} charge:
+                                            </Text> applies if order is below ₹{formatPrice(rule?.mov)}
                                         </Text>
                                     </View>
 
@@ -454,7 +455,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                                         }}>
                                             <Text style={{ fontWeight: '600' }}>
                                                 FREE delivery:
-                                            </Text> on orders ₹{rule?.mov} and above
+                                            </Text> on orders ₹{formatPrice(rule?.mov)} and above
                                         </Text>
                                     </View>
 
@@ -464,7 +465,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                         </View>
                         <View style={styles.finalTotalRow}>
                             <Text style={styles.finalTotalLabel}>Total Amount</Text>
-                            <Text style={styles.finalTotalValue}>{currentQuote ? `₹${orderTotal.toLocaleString('en-IN')}` : '—'}</Text>
+                            <Text style={styles.finalTotalValue}>{currentQuote ? `₹${formatPrice(orderTotal)}` : '—'}</Text>
                         </View>
                     </View>
                 </View>

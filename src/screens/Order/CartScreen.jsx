@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateCartQtyThunk, removeFromCartThunk, selectCartTotal } from '../../redux/slices/cartSlice';
@@ -94,11 +95,11 @@ const CartScreen = ({ navigation, route }) => {
                                             </TouchableOpacity>
                                         </View>
                                         <Text style={styles.unitPrice}>
-                                            Price: ₹{unitPrice} {tier?.unit ? `/ ${tier.unit}` : ''}
+                                            Price: ₹{formatPrice(unitPrice)} {tier?.unit ? `/ ${tier.unit}` : ''}
                                         </Text>
                                         
                                         <View style={styles.itemFooter}>
-                                            <Text style={styles.totalPrice}>₹{(unitPrice * item.quantity).toLocaleString()}</Text>
+                                            <Text style={styles.totalPrice}>₹{formatPrice(unitPrice * item.quantity)}</Text>
                                             <View style={styles.qtyControl}>
                                                 <TouchableOpacity onPress={() => updateQty(item.product?._id, item.quantity - 1, item.tierIndex || 0)}>
                                                     <MaterialIcons name="remove" size={16} color="#3E920C" />
@@ -131,7 +132,7 @@ const CartScreen = ({ navigation, route }) => {
             <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 60, 100) }]}>
                 <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Subtotal ({cartItems.filter(i => i.product).reduce((a, b) => a + b.quantity, 0)} items)</Text>
-                    <Text style={styles.summaryValue}>₹{cartTotal.toLocaleString()}</Text>
+                    <Text style={styles.summaryValue}>₹{formatPrice(cartTotal)}</Text>
                 </View>
 
 
@@ -139,7 +140,7 @@ const CartScreen = ({ navigation, route }) => {
 
                 <View style={styles.summaryRow}>
                     <Text style={styles.totalLabel}>{isWholesale ? 'Order Total' : 'Grand Total'}</Text>
-                    <Text style={styles.totalAmount}>₹{cartTotal.toLocaleString()}</Text>
+                    <Text style={styles.totalAmount}>₹{formatPrice(cartTotal)}</Text>
                 </View>
 
                 <TouchableOpacity

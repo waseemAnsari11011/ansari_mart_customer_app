@@ -68,7 +68,7 @@ api.interceptors.response.use(
             try {
                 const token = await AsyncStorage.getItem('userToken');
                 if (token) {
-                    notifySessionExpired();
+                    notifySessionExpired(error.response?.data || {});
                 }
             } catch (storageError) {
                 console.error('Error checking session after unauthorized response', storageError);

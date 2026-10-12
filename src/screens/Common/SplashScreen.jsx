@@ -19,6 +19,11 @@ const SplashScreen = ({ navigation }) => {
   const [storeUrl, setStoreUrl] = useState('');
 
   const checkForUpdate = async () => {
+    // Local debug builds should never be blocked by the store version.
+    if (__DEV__) {
+      return true;
+    }
+
     try {
       const update = await VersionCheck.needUpdate();
 

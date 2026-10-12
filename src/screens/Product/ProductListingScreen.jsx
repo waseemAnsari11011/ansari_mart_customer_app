@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCartThunk } from '../../redux/slices/cartSlice';
@@ -135,13 +136,13 @@ const ProductListingScreen = ({ navigation, route }) => {
             {item.name}
           </Text>
           {!!item.mrp && (
-            <Text style={styles.mrpTextSmall}>MRP: ₹{item.mrp}</Text>
+            <Text style={styles.mrpTextSmall}>MRP: ₹{formatPrice(item.mrp)}</Text>
           )}
 
           <View style={styles.productFooter}>
             <View>
               <Text style={styles.productPrice}>
-                ₹{getLowestPrice(item, isWholesaleRoute)}
+                ₹{formatPrice(getLowestPrice(item, isWholesaleRoute))}
                 {(() => {
                   const pricingArr = isWholesaleRoute
                     ? item.businessPricing
