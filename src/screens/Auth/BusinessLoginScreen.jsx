@@ -228,7 +228,7 @@ const BusinessLoginScreen = ({ navigation }) => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Are you a retail customer?</Text>
+                    <Text style={styles.footerText}>Are you a Customer customer?</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('CustomerLogin')}>
                         <View style={styles.switchContainer}>
                             <Text style={styles.switchText}>Switch to Customer Login</Text>

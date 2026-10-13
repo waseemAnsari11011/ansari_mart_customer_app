@@ -1,3 +1,4 @@
+import { customerText } from '../../utils/customerLabels';
 import { formatPrice } from '../../utils/formatPrice';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
@@ -64,7 +65,7 @@ export default function OfferProductsScreen({ route, navigation }) {
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.back}>
                     <MaterialIcons name="arrow-back" size={24} color="#1A1A1A" />
                 </TouchableOpacity>
-                <Text style={styles.title}>{offer.name}</Text>
+                <Text style={styles.title}>{customerText(offer.name)}</Text>
             </View>
             <View style={styles.info}>
                 <Text style={styles.infoTitle}>Special prices on selected products</Text>

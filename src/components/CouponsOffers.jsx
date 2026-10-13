@@ -1,3 +1,4 @@
+import { customerText } from '../utils/customerLabels';
 import { formatPrice } from '../utils/formatPrice';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -26,9 +27,9 @@ export default function CouponsOffers({ rules, isWholesale = false }) {
             <Text style={styles.subtitle}>Save more with automatic discounts</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cards}>
                 {rules.map((rule, index) => (
-                    <TouchableOpacity key={`${rule.name}-${index}`} activeOpacity={0.8}
+                    <TouchableOpacity key={`${customerText(rule.name)}-${index}`} activeOpacity={0.8}
                         style={[styles.card, { backgroundColor: tint }]}
-                        accessibilityRole="button" accessibilityLabel={`${rule.name}. ${headline(rule)}. ${condition(rule)}.${rule.firstOrderOnly ? ' First order only.' : ''} ${rule.discountType === 'product_price' ? 'Shop offer products' : 'View offer details'}.`}
+                        accessibilityRole="button" accessibilityLabel={`${customerText(rule.name)}. ${headline(rule)}. ${condition(rule)}.${rule.firstOrderOnly ? ' First order only.' : ''} ${rule.discountType === 'product_price' ? 'Shop offer products' : 'View offer details'}.`}
                         onPress={() => rule.discountType === 'product_price'
                             ? navigation.navigate('OfferProducts', { offer: rule, isWholesale })
                             : setSelected(rule)}>
@@ -38,7 +39,6 @@ export default function CouponsOffers({ rules, isWholesale = false }) {
                         <Text style={styles.eyebrow}>{rule.discountType === 'fixed' ? 'FLAT' : 'SPECIAL OFFER'}</Text>
                         <Text style={styles.amount}>{headline(rule)}</Text>
                         <View style={styles.condition}><Text style={styles.conditionText}>{condition(rule)}</Text></View>
-                        <Text style={styles.name} numberOfLines={2}>{rule.name}</Text>
                         {rule.firstOrderOnly && <Text style={[styles.firstOrder, { color: accent }]}>First order only</Text>}
                         <Text style={[styles.details, { color: accent }]}>{rule.discountType === 'product_price' ? 'Shop products ›' : 'View details ›'}</Text>
                     </TouchableOpacity>
@@ -49,7 +49,7 @@ export default function CouponsOffers({ rules, isWholesale = false }) {
                 <View style={styles.backdrop}>
                     <View style={styles.dialog} accessibilityViewIsModal>
                         <View style={styles.dialogHeader}>
-                            <Text style={styles.dialogTitle}>{selected?.name}</Text>
+                            <Text style={styles.dialogTitle}>{customerText(selected?.name)}</Text>
                             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close offer details" style={styles.close} onPress={() => setSelected(null)}>
                                 <MaterialIcons name="close" size={24} color="#1A1A1A" />
                             </TouchableOpacity>
@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
     amount: { fontSize: 20, fontWeight: '900', color: '#142519', marginTop: 4, textAlign: 'center' },
     condition: { backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 7, marginTop: 10, width: '100%' },
     conditionText: { fontSize: 12, textAlign: 'center', color: '#334155' },
-    name: { fontSize: 12, lineHeight: 17, color: '#334155', textAlign: 'center', marginTop: 9 },
     firstOrder: { fontSize: 11, fontWeight: '700', marginTop: 6 },
     details: { fontSize: 12, fontWeight: '700', marginTop: 10 },
     note: { paddingHorizontal: 16, fontSize: 11, color: '#64748B', marginTop: 5 },

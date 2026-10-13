@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 
-const BottomTab = ({ activeTab, isWholesale = false }) => {
+const BottomTab = ({ activeTab, isWholesale = false, containerStyle }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user } = useSelector(state => state.auth);
@@ -132,7 +132,11 @@ const BottomTab = ({ activeTab, isWholesale = false }) => {
 
   return (
     <View
-      style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 6) }]}
+      style={[
+        styles.bottomNav,
+        { paddingBottom: Math.max(insets.bottom, 6) },
+        containerStyle,
+      ]}
     >
       {navItems.map(item => {
         const isActive = activeTab === item.name;

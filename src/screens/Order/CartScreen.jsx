@@ -1,5 +1,8 @@
+// @refresh reset
 import { formatPrice } from '../../utils/formatPrice';
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import CartOffers from '../../components/CartOffers';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateCartQtyThunk, removeFromCartThunk, selectCartTotal } from '../../redux/slices/cartSlice';
 import { calculateProductPrice } from '../../utils/pricing';
@@ -7,7 +10,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import BottomTab from '../../components/BottomTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { resolveImageUrl } from '../../utils/api';
+import api, { resolveImageUrl } from '../../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +22,26 @@ const CartScreen = ({ navigation, route }) => {
     const insets = useSafeAreaInsets();
     const user = useSelector(state => state.auth.user);
     const isWholesale = route?.params?.isWholesale ?? (user?.type === 'Business');
+    const [quote, setQuote] = useState(null);
+    const [quoteError, setQuoteError] = useState('');
+    const [retry, setRetry] = useState(0);
+    const quoteItems = JSON.stringify(cartItems.filter(item => item.product).map(item => ({
+        product: item.product._id, qty: item.quantity, tierIndex: item.tierIndex || 0,
+    })));
+    const quoteKey = `${user?._id}:${user?.type}:${quoteItems}:${retry}`;
+    const currentQuote = quote?.key === quoteKey ? quote.data : null;
+    useFocusEffect(useCallback(() => {
+        let active = true;
+        setQuote(null);
+        setQuoteError('');
+        if (JSON.parse(quoteItems).length) {
+            api.post('/orders/preview', { orderItems: JSON.parse(quoteItems) })
+                .then(({ data }) => { if (active) { setQuote({ key: quoteKey, data }); } })
+                .catch(error => { if (active) { setQuoteError(error.response?.data?.message || 'Could not check offers. Please retry.'); } });
+        }
+        return () => { active = false; };
+    }, [quoteKey, quoteItems]));
+
 
     const updateQty = async (productId, quantity, tierIndex) => {
         try {
@@ -59,7 +82,7 @@ const CartScreen = ({ navigation, route }) => {
                 )}
             </View>
 
-            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 220 + insets.bottom }]}>
+            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 340 + insets.bottom }]}>
 
 
                 {/* Cart Items */}
@@ -121,6 +144,8 @@ const CartScreen = ({ navigation, route }) => {
                     )}
                 </View>
 
+                {cartItems.some(item => item.product) && <CartOffers quote={currentQuote} error={quoteError} onRetry={() => setRetry(value => value + 1)} navigation={navigation} isWholesale={isWholesale} />}
+
                 <TouchableOpacity style={styles.addMoreBtn} onPress={() => navigation.navigate(isWholesale ? 'BusinessHome' : 'RetailHome')}>
                     <MaterialIcons name="add-circle-outline" size={18} color="#3E920C" />
                     <Text style={styles.addMoreText}>Add More Items</Text>
@@ -132,15 +157,23 @@ const CartScreen = ({ navigation, route }) => {
             <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 60, 100) }]}>
                 <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Subtotal ({cartItems.filter(i => i.product).reduce((a, b) => a + b.quantity, 0)} items)</Text>
-                    <Text style={styles.summaryValue}>₹{formatPrice(cartTotal)}</Text>
+                    <Text style={styles.summaryValue}>₹{formatPrice(currentQuote?.subtotal ?? cartTotal)}</Text>
                 </View>
 
 
+                {currentQuote?.discountAmount > 0 && <View style={styles.summaryRow}>
+                    <Text style={[styles.summaryLabel, styles.savingsText]}>Best offer savings</Text>
+                    <Text style={[styles.summaryValue, styles.savingsText]}>−₹{formatPrice(currentQuote.discountAmount)}</Text>
+                </View>}
+                <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Delivery</Text>
+                    <Text style={styles.summaryValue}>{currentQuote ? currentQuote.deliveryFee ? `₹${formatPrice(currentQuote.deliveryFee)}` : 'FREE' : 'Calculated at checkout'}</Text>
+                </View>
                 <View style={styles.totalDivider} />
 
                 <View style={styles.summaryRow}>
-                    <Text style={styles.totalLabel}>{isWholesale ? 'Order Total' : 'Grand Total'}</Text>
-                    <Text style={styles.totalAmount}>₹{formatPrice(cartTotal)}</Text>
+                    <Text style={styles.totalLabel}>{currentQuote ? 'Estimated Total' : 'Items Total'}</Text>
+                    <Text style={styles.totalAmount}>₹{formatPrice(currentQuote?.totalPrice ?? cartTotal)}</Text>
                 </View>
 
                 <TouchableOpacity

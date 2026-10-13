@@ -1,3 +1,4 @@
+import { customerText } from '../../utils/customerLabels';
 import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Alert, ActivityIndicator } from 'react-native';
@@ -271,7 +272,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                                         <View>
                                             <Text style={styles.productName} numberOfLines={1}>{item.product?.name}</Text>
                                             <Text style={styles.wholesaleRate}>
-                                                {isWholesale ? 'Wholesale' : 'Retail'}: ₹{formatPrice(unitPrice)}/unit
+                                                {isWholesale ? 'Business' : 'Customer'}: ₹{formatPrice(unitPrice)}/unit
                                                 {tier?.unit ? ` (${tier.unit})` : ''}
                                             </Text>
                                         </View>
@@ -367,7 +368,7 @@ const CheckoutScreen = ({ navigation, route }) => {
                         {!currentQuote && <Text style={styles.summaryItemLabel}>{quoteError || 'Calculating total and best offer…'}</Text>}
                         {!!quoteError && <TouchableOpacity onPress={() => setQuoteVersion(value => value + 1)}><Text style={styles.savingsLabel}>Retry</Text></TouchableOpacity>}
                         {currentQuote?.discountAmount > 0 && <View style={styles.summaryItemRow}>
-                            <Text style={[styles.savingsLabel, { flex: 1 }]}>{currentQuote.discountName}</Text>
+                            <Text style={[styles.savingsLabel, { flex: 1 }]}>{customerText(currentQuote.discountName)}</Text>
                             <Text style={styles.savingsValue}>−₹{formatPrice(currentQuote.discountAmount)}</Text>
                         </View>}
                         <View style={styles.summaryItemRow}>

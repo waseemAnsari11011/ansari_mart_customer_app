@@ -64,7 +64,7 @@ const AppNavigator = () => {
             Alert.alert(
                 details?.code === 'ACCOUNT_CHANGED' ? 'Account Changed' : 'Session Expired',
                 loginType
-                    ? `Your account has changed. Please log in again as a ${loginType} customer.`
+                    ? `Your account has changed. Please log in again as a ${loginType === 'Retail' ? 'Customer' : 'Business'}.`
                     : 'Your login session is no longer valid. Please log in again to continue.',
                 [
                     {

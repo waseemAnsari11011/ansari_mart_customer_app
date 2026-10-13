@@ -7,7 +7,6 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    Dimensions,
     StatusBar,
     Platform,
     Alert,
@@ -21,9 +20,7 @@ import api, { resolveImageUrl } from '../../utils/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, updateUser } from '../../redux/slices/authSlice';
 
-const { width } = Dimensions.get('window');
-
-const ProfileScreen = ({ navigation, route }) => {
+const ProfileScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const dispatch = useDispatch();
     const user = useSelector(state => state.auth.user);
@@ -140,116 +137,126 @@ const ProfileScreen = ({ navigation, route }) => {
                 {/* Theme toggle removed */}
             </View>
 
-            <ScrollView
-                contentContainerStyle={[
-                    styles.scrollContent,
-                    { paddingBottom: 100 + insets.bottom },
-                ]}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Profile Card */}
-                <TouchableOpacity
-                    style={styles.profileCard}
-                    onPress={() => navigation.navigate('EditProfile')}
-                    activeOpacity={0.7}
+            <View style={styles.profileContent}>
+                <ScrollView
+                    style={styles.profileScroll}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
                 >
-                    {/* Logout Button inside Profile Card */}
-                    <TouchableOpacity style={styles.cardLogoutBtn} onPress={handleLogout}>
-                        <MaterialIcons name="logout" size={20} color="#F43F5E" />
-                    </TouchableOpacity>
-
-                    <View style={styles.avatarWrapper}>
-                        <View style={styles.avatarContainer}>
-                            <Image
-                                source={{
-                                    uri:
-                                        resolveImageUrl(user?.profilePhoto) ||
-                                        `https://ui-avatars.com/api/?name=${user?.name || 'User'
-                                        }&background=2E7D32&color=fff&size=120`,
-                                }}
-                                style={styles.avatar}
-                            />
-                        </View>
-                        <TouchableOpacity style={styles.cameraBtn} onPress={() => { }}>
-                            <MaterialIcons name="camera-alt" size={16} color="#fff" />
+                    {/* Profile Card */}
+                    <TouchableOpacity
+                        style={styles.profileCard}
+                        onPress={() => navigation.navigate('EditProfile')}
+                        activeOpacity={0.7}
+                    >
+                        {/* Logout Button inside Profile Card */}
+                        <TouchableOpacity style={styles.cardLogoutBtn} onPress={handleLogout}>
+                            <MaterialIcons name="logout" size={20} color="#F43F5E" />
                         </TouchableOpacity>
-                    </View>
 
-                    <View style={styles.userNameRow}>
-                        <Text style={styles.userName}>
-                            {user?.name || (isWholesale ? 'Business User' : 'Customer')}
-                        </Text>
-                    </View>
+                        <View style={styles.avatarWrapper}>
+                            <View style={styles.avatarContainer}>
+                                <Image
+                                    source={{
+                                        uri:
+                                            resolveImageUrl(user?.profilePhoto) ||
+                                            `https://ui-avatars.com/api/?name=${user?.name || 'User'
+                                            }&background=2E7D32&color=fff&size=120`,
+                                    }}
+                                    style={styles.avatar}
+                                />
+                            </View>
+                            <TouchableOpacity style={styles.cameraBtn} onPress={() => { }}>
+                                <MaterialIcons name="camera-alt" size={16} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
 
-                    <View style={styles.contactInfo}>
-                        <View style={styles.infoRow}>
-                            <MaterialIcons name="call" size={16} color="#94A3B8" />
-                            <Text style={styles.infoText}>
-                                {user?.phone || 'No phone number'}
+                        <View style={styles.userNameRow}>
+                            <Text style={styles.userName}>
+                                {user?.name || (isWholesale ? 'Business User' : 'Customer')}
                             </Text>
                         </View>
-                    </View>
-                </TouchableOpacity>
 
-                {/* Sections */}
-                {sections.map((section, sIndex) => (
-                    <View key={sIndex} style={styles.section}>
-                        <Text style={styles.sectionLabel}>{section.title}</Text>
-                        <View style={styles.menuList}>
-                            {section.items.map((item, iIndex) => (
-                                <TouchableOpacity
-                                    key={iIndex}
-                                    style={[
-                                        styles.menuItem,
-                                        iIndex !== section.items.length - 1 &&
-                                        styles.menuItemBorder,
-                                    ]}
-                                    onPress={() =>
-                                        item.route !== '#' && navigation.navigate(item.route)
-                                    }
-                                >
-                                    <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
-                                        <MaterialIcons
-                                            name={item.icon || 'star'}
-                                            size={22}
-                                            color={item.color}
-                                        />
-                                    </View>
-                                    <View style={styles.menuContent}>
-                                        <Text style={styles.menuTitle}>{item.title}</Text>
-                                        {item.badge && (
-                                            <View
-                                                style={[
-                                                    styles.badge,
-                                                    item.badge === 'Approved' && styles.successBadge,
-                                                    item.badge === 'Rejected' && styles.errorBadge,
-                                                ]}
-                                            >
-                                                <Text
+                        <View style={styles.contactInfo}>
+                            <View style={styles.infoRow}>
+                                <MaterialIcons name="call" size={16} color="#94A3B8" />
+                                <Text style={styles.infoText}>
+                                    {user?.phone || 'No phone number'}
+                                </Text>
+                            </View>
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Sections */}
+                    {sections.map((section, sIndex) => (
+                        <View key={sIndex} style={styles.section}>
+                            <Text style={styles.sectionLabel}>{section.title}</Text>
+                            <View style={styles.menuList}>
+                                {section.items.map((item, iIndex) => (
+                                    <TouchableOpacity
+                                        key={iIndex}
+                                        style={[
+                                            styles.menuItem,
+                                            iIndex !== section.items.length - 1 &&
+                                            styles.menuItemBorder,
+                                        ]}
+                                        onPress={() =>
+                                            item.route !== '#' && navigation.navigate(item.route)
+                                        }
+                                    >
+                                        <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
+                                            <MaterialIcons
+                                                name={item.icon || 'star'}
+                                                size={22}
+                                                color={item.color}
+                                            />
+                                        </View>
+                                        <View style={styles.menuContent}>
+                                            <Text style={styles.menuTitle}>{item.title}</Text>
+                                            {item.badge && (
+                                                <View
                                                     style={[
-                                                        styles.badgeText,
-                                                        item.badge === 'Approved' &&
-                                                        styles.successBadgeText,
-                                                        item.badge === 'Rejected' && styles.errorBadgeText,
+                                                        styles.badge,
+                                                        item.badge === 'Approved' && styles.successBadge,
+                                                        item.badge === 'Rejected' && styles.errorBadge,
                                                     ]}
                                                 >
-                                                    {item.badge}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <MaterialIcons
-                                        name="chevron-right"
-                                        size={20}
-                                        color="#CBD5E1"
-                                    />
-                                </TouchableOpacity>
-                            ))}
+                                                    <Text
+                                                        style={[
+                                                            styles.badgeText,
+                                                            item.badge === 'Approved' &&
+                                                            styles.successBadgeText,
+                                                            item.badge === 'Rejected' && styles.errorBadgeText,
+                                                        ]}
+                                                    >
+                                                        {item.badge}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        <MaterialIcons
+                                            name="chevron-right"
+                                            size={20}
+                                            color="#CBD5E1"
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
-                    </View>
-                ))}
+                    ))}
+                </ScrollView>
 
-                {/* Developer Credit (Inside Scroll) */}
+                {/* Floating Help & Support Button */}
+                <TouchableOpacity
+                    style={styles.floatingHelpBtn}
+                    onPress={() => navigation.navigate('HelpSupport')}
+                >
+                    <MaterialIcons name="support-agent" size={28} color="#fff" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.footer}>
+                {/* Developer credit stays visible above the navigation. */}
                 <TouchableOpacity
                     style={styles.developerCard}
                     onPress={() => Linking.openURL('https://ecarts.agency/')}
@@ -267,18 +274,12 @@ const ProfileScreen = ({ navigation, route }) => {
                         />
                     </View>
                 </TouchableOpacity>
-            </ScrollView>
-
-            {/* Floating Help & Support Button */}
-            <TouchableOpacity
-                style={[styles.floatingHelpBtn, { bottom: insets.bottom + 120 }]}
-                onPress={() => navigation.navigate('HelpSupport')}
-            >
-                <MaterialIcons name="support-agent" size={28} color="#fff" />
-            </TouchableOpacity>
-
-            {/* Bottom Nav */}
-            <BottomTab activeTab="Profile" isWholesale={isWholesale} />
+                <BottomTab
+                    activeTab="Profile"
+                    isWholesale={isWholesale}
+                    containerStyle={styles.bottomNav}
+                />
+            </View>
         </View>
     );
 };
@@ -329,9 +330,22 @@ const styles = StyleSheet.create({
         color: '#0F172A',
     },
 
+    profileContent: {
+        flex: 1,
+    },
+    profileScroll: {
+        flex: 1,
+    },
+    footer: {
+        paddingTop: 8,
+    },
+    bottomNav: {
+        position: 'relative',
+    },
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 10,
+        paddingBottom: 80,
     },
     profileCard: {
         backgroundColor: '#fff',
@@ -407,6 +421,7 @@ const styles = StyleSheet.create({
     },
     floatingHelpBtn: {
         position: 'absolute',
+        bottom: 16,
         right: 20,
         width: 56,
         height: 56,
@@ -568,8 +583,9 @@ const styles = StyleSheet.create({
         letterSpacing: 1.5,
     },
     developerCard: {
-        marginTop: 4,
-        paddingVertical: 16,
+        marginHorizontal: 20,
+        marginBottom: 24,
+        paddingVertical: 10,
         paddingHorizontal: 24,
         backgroundColor: '#fff',
         borderRadius: 20,
@@ -590,7 +606,7 @@ const styles = StyleSheet.create({
         }),
     },
     developerText: {
-        fontSize: 19,
+        fontSize: 14,
         fontWeight: '600',
         color: '#64748B',
     },

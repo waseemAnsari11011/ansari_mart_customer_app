@@ -1,3 +1,4 @@
+import { customerText } from '../../utils/customerLabels';
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -40,10 +41,10 @@ export default function ProductOffers({ product, isWholesale }) {
                 <Text style={styles.title}>Offers on this product</Text>
             </View>
             {offers.map(({ rule, options }, index) => (
-                <TouchableOpacity key={`${rule.name}-${index}`} accessibilityRole="button"
-                    accessibilityLabel={`${rule.name}. View offer products`}
+                <TouchableOpacity key={`${customerText(rule.name)}-${index}`} accessibilityRole="button"
+                    accessibilityLabel={`${customerText(rule.name)}. View offer products`}
                     style={styles.offer} onPress={() => navigation.navigate('OfferProducts', { offer: rule, isWholesale })}>
-                    <Text style={styles.name}>{rule.name}</Text>
+                    <Text style={styles.name}>{customerText(rule.name)}</Text>
                     {options.map(option => (
                         <View key={option.tierIndex} style={styles.option}>
                             <Text style={styles.pack}>{option.tier.label || option.tier.unit || `Option ${option.tierIndex + 1}`}</Text>
