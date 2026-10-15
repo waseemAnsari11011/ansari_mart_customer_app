@@ -3,6 +3,7 @@ import { formatPrice } from '../../utils/formatPrice';
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import CartOffers from '../../components/CartOffers';
+import OfferCartItem from '../../components/OfferCartItem';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateCartQtyThunk, removeFromCartThunk, selectCartTotal } from '../../redux/slices/cartSlice';
 import { calculateProductPrice } from '../../utils/pricing';
@@ -97,6 +98,15 @@ const CartScreen = ({ navigation, route }) => {
                             const pricingArray = item.isWholesale ? item.product?.businessPricing : item.product?.retailPricing;
                             const tier = pricingArray?.[item.tierIndex || 0];
                             const unitPrice = calculateProductPrice(item.product, item.quantity, item.isWholesale, item.tierIndex || 0);
+                            const productOffer = currentQuote?.discountProducts?.find(offer =>
+                                String(offer.product) === String(item.product._id) && offer.tierIndex === (item.tierIndex || 0)
+                            );
+                            if (productOffer && tier) {
+                                return <OfferCartItem key={`${item.product._id}-${item.tierIndex || 0}`}
+                                    item={item} tier={tier} offer={productOffer}
+                                    onQuantityChange={quantity => updateQty(item.product._id, quantity, item.tierIndex || 0)}
+                                    onRemove={() => handleRemove(item.product._id, item.tierIndex || 0)} />;
+                            }
                             
                             return (
                                 <View key={`${item.product?._id}-${item.tierIndex || 0}`} style={styles.cartItem}>
